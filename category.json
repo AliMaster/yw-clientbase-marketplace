@@ -1,10 +1,13 @@
 {
-    "developer": {
-        "description": "开发者必装插件合集",
-        "plugins": [
-            {
-                "name": "superpowers"
-            }
-        ]
-    }
+    "category": [
+        {
+            "name": "developer",
+            "description": "开发者必装插件合集",
+            "plugins": [
+                {
+                    "name": "superpowers"
+                }
+            ]
+        }
+    ]
 }
