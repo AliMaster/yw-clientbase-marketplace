@@ -8,6 +8,26 @@
                     "name": "superpowers"
                 }
             ]
+        },
+        {
+            "name": "android",
+            "description": "Android 开发者必装插件合集",
+            "plugins": []
+        },
+        {
+            "name": "ios",
+            "description": "iOS 开发者必装插件合集",
+            "plugins": []
+        },
+        {
+            "name": "flutter",
+            "description": "Flutter 开发者必装插件合集",
+            "plugins": []
+        },
+        {
+            "name": "ohos",
+            "description": "OpenHarmony 开发者必装插件合集",
+            "plugins": []
         }
     ]
 }
