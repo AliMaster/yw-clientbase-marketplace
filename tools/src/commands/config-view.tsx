@@ -87,7 +87,7 @@ export function ConfigView({
           return (
             <Box key={f} flexDirection="column">
               <Box>
-                <Text color="cyan" bold>  › </Text>
+                <Text color="green" bold>  › </Text>
                 <Text bold>{FIELD_LABELS[f]}: </Text>
               </Box>
               <Box>
@@ -104,11 +104,11 @@ export function ConfigView({
 
         return (
           <Box key={f}>
-            <Text color={active ? "cyan" : "gray"}>
+            <Text color={active ? "green" : "gray"}>
               {active ? "  ❯ " : "    "}
             </Text>
-            <Text dimColor>{FIELD_LABELS[f]}: </Text>
-            <Text bold={active}>{value || "(空)"}</Text>
+            <Text color="cyan">{FIELD_LABELS[f]}: </Text>
+            <Text color={active ? "green" : "white"} bold={active}>{value || "(空)"}</Text>
           </Box>
         );
       })}
