@@ -105,7 +105,7 @@ export function GenerateFlow({ onDone }: { onDone: () => void }) {
   return (
     <Box flexDirection="column" paddingLeft={2}>
       <Box marginBottom={1}>
-        <Text bold color="yellow">  发布</Text>
+        <Text bold color="yellow">  更新插件</Text>
         {phase === "running" && (
           <>
             <Text> </Text>

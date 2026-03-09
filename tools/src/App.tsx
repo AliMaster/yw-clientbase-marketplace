@@ -34,7 +34,7 @@ export function App() {
     menuItems.push({
       key: "edit-config",
       label: "修改配置",
-      description: `编辑市场基本信息 (${config!.marketplace.name})`,
+      description: `编辑我的市场基本信息 (${config!.marketplace.name})`,
       icon: "✎",
       color: "yellow",
     });
@@ -48,7 +48,7 @@ export function App() {
     if (pluginCount > 0) {
       menuItems.push({
         key: "generate",
-        label: "发布",
+        label: "更新插件",
         description: `生成 marketplace.json (${pluginCount} 个插件)`,
         icon: "▶",
         color: "cyan",

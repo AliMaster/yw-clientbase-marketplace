@@ -17,6 +17,8 @@ interface Props {
 export function Menu({ items, onSelect }: Props) {
   const [cursor, setCursor] = useState(0);
 
+  const maxLabelLen = Math.max(...items.map((item) => item.label.length));
+
   useInput((_input, key) => {
     if (key.upArrow) {
       setCursor((c) => (c > 0 ? c - 1 : items.length - 1));
@@ -37,13 +39,14 @@ export function Menu({ items, onSelect }: Props) {
       </Box>
       {items.map((item, i) => {
         const active = i === cursor;
+        const labelPad = item.label.padEnd(maxLabelLen);
         return (
           <Box key={item.key}>
             <Text color={active ? "cyan" : "gray"}>
-              {active ? "  ❯ " : "    "}
+              {active ? "  > " : "    "}
             </Text>
             <Text color={active ? (item.color as any) : undefined} bold={active}>
-              {item.icon} {item.label}
+              {labelPad}
             </Text>
             {item.description && (
               <Text dimColor>  {item.description}</Text>
