@@ -340,7 +340,7 @@ export function AddFlow({ onDone }: { onDone: () => void }) {
   return null;
 }
 
-// 管理视图：顶部添加入口 + 已配置插件列表
+// 管理视图：顶部添加入口 + 按分组展示已配置插件
 function ManageView({
   config,
   onAddFromGit,
@@ -371,17 +371,35 @@ function ManageView({
     return result;
   }, [config]);
 
+  // 分组 tab 列表：全部 + config 中定义的分类
+  const tabs = useMemo(() => {
+    const categoryNames = (config?.categories || []).map((c) => c.name);
+    return ["全部", ...categoryNames];
+  }, [config]);
+
+  const [activeTab, setActiveTab] = useState(0);
+  const [cursor, setCursor] = useState(0);
+  const { stdout } = useStdout();
+  const termWidth = stdout?.columns || 120;
+
+  // 当前分组下的插件
+  const filteredPlugins = useMemo(() => {
+    if (activeTab === 0) return allPlugins;
+    const category = tabs[activeTab];
+    return allPlugins.filter((p) => p.category === category);
+  }, [allPlugins, activeTab, tabs]);
+
   const totalCount = allPlugins.length;
 
-  // 列表项：2 个添加入口 + 已导入插件
+  // 列表项：2 个添加入口 + 过滤后的插件（统一为一个可导航列表）
   type ListItem =
     | { type: "action"; key: string; label: string; action: () => void }
     | { type: "plugin"; key: string; name: string; description: string; category: string; sourceUrl: string };
 
-  const items: ListItem[] = [
-    { type: "action", key: "__git__", label: "从 Git 仓库添加", action: onAddFromGit },
-    { type: "action", key: "__local__", label: "从本地目录添加", action: onAddFromLocal },
-    ...allPlugins.map((p) => ({
+  const items: ListItem[] = useMemo(() => [
+    { type: "action" as const, key: "__git__", label: "从 Git 仓库添加", action: onAddFromGit },
+    { type: "action" as const, key: "__local__", label: "从本地目录添加", action: onAddFromLocal },
+    ...filteredPlugins.map((p) => ({
       type: "plugin" as const,
       key: `${p.sourceUrl}::${p.name}`,
       name: p.name,
@@ -389,17 +407,18 @@ function ManageView({
       category: p.category,
       sourceUrl: p.sourceUrl,
     })),
-  ];
-
-  const [cursor, setCursor] = useState(0);
-  const { stdout } = useStdout();
-  const termWidth = stdout?.columns || 120;
+  ], [filteredPlugins, onAddFromGit, onAddFromLocal]);
 
   // 列宽计算
   const nameColWidth = useMemo(() => {
     const maxName = Math.max(...allPlugins.map((p) => p.name.length), 10);
     return Math.min(maxName, 30);
   }, [allPlugins]);
+
+  // 切换 tab 时重置光标
+  useEffect(() => {
+    setCursor(0);
+  }, [activeTab]);
 
   useInput((_ch, key) => {
     if (key.escape) {
@@ -412,6 +431,12 @@ function ManageView({
     if (key.downArrow) {
       setCursor((c) => (c < items.length - 1 ? c + 1 : 0));
     }
+    if (key.leftArrow) {
+      setActiveTab((t) => (t > 0 ? t - 1 : tabs.length - 1));
+    }
+    if (key.rightArrow) {
+      setActiveTab((t) => (t < tabs.length - 1 ? t + 1 : 0));
+    }
     if (key.return && items.length > 0) {
       const item = items[cursor];
       if (item.type === "action") {
@@ -423,6 +448,7 @@ function ManageView({
   });
 
   const descColWidth = Math.max(termWidth - nameColWidth - 20, 20);
+  const sepWidth = Math.min(termWidth - 6, 60);
 
   return (
     <Box flexDirection="column" paddingLeft={2}>
@@ -431,63 +457,89 @@ function ManageView({
         <Text dimColor>  ({totalCount} 个插件)</Text>
       </Box>
 
-      {items.map((item, i) => {
-        const active = i === cursor;
-        if (item.type === "action") {
-          return (
-            <Box key={item.key}>
-              <Text color={active ? "cyan" : "gray"}>
-                {active ? "  ❯ " : "    "}
-              </Text>
-              <Text color={active ? "green" : undefined} bold={active}>
-                + {item.label}
-              </Text>
-            </Box>
-          );
-        }
+      {/* 添加入口 */}
+      {items.filter((it) => it.type === "action").map((item, i) => {
+        const globalIdx = i;
+        const active = globalIdx === cursor;
+        return (
+          <Box key={item.key}>
+            <Text color={active ? "cyan" : "gray"}>
+              {active ? "  ❯ " : "    "}
+            </Text>
+            <Text color={active ? "green" : undefined} bold={active}>
+              + {(item as { label: string }).label}
+            </Text>
+          </Box>
+        );
+      })}
 
-        // 分隔线：在第一个插件之前
-        const showSep = i === 2;
-        const nameTrunc = item.name.length > nameColWidth
-          ? item.name.slice(0, nameColWidth - 1) + "~"
-          : item.name;
+      {/* 分组 tab + 操作提示 */}
+      <Box marginTop={1}>
+        <Text>  </Text>
+        {tabs.map((tab, i) => {
+          const isActive = i === activeTab;
+          const count = i === 0
+            ? totalCount
+            : allPlugins.filter((p) => p.category === tab).length;
+          return (
+            <React.Fragment key={tab}>
+              {i > 0 && <Text dimColor> | </Text>}
+              <Text color={isActive ? "cyan" : "gray"} bold={isActive}>
+                {tab}({count})
+              </Text>
+            </React.Fragment>
+          );
+        })}
+      </Box>
+      <Box>
+        <Text dimColor>  ↑/↓ 选择  ←/→ 切换分组  Enter 确认  Esc 返回</Text>
+      </Box>
+
+      {/* 分隔线 */}
+      <Box>
+        <Text dimColor>  {"─".repeat(sepWidth)}</Text>
+      </Box>
+
+      {/* 插件列表 */}
+      {items.filter((it) => it.type === "plugin").map((item, i) => {
+        const globalIdx = i + 2; // 前面 2 个 action
+        const active = globalIdx === cursor;
+        const pi = item as { name: string; description: string; category: string; sourceUrl: string; key: string };
+        const nameTrunc = pi.name.length > nameColWidth
+          ? pi.name.slice(0, nameColWidth - 1) + "~"
+          : pi.name;
         const namePad = nameTrunc.padEnd(nameColWidth);
-        const desc = item.description
-          + (item.category ? ` [${item.category}]` : "");
+        const desc = pi.description
+          + (pi.category ? ` [${pi.category}]` : "");
         const descTrunc = desc.length > descColWidth
           ? desc.slice(0, descColWidth - 1) + "~"
           : desc;
 
         return (
-          <React.Fragment key={item.key}>
-            {showSep && (
-              <Box>
-                <Text dimColor>  {"─".repeat(Math.min(termWidth - 6, 60))}</Text>
-              </Box>
-            )}
-            <Box>
-              <Text color={active ? "cyan" : "gray"}>
-                {active ? "  ❯ " : "    "}
-              </Text>
-              <Text color="green">[x]</Text>
-              <Text> </Text>
-              <Text color={active ? "white" : "cyan"} bold>{namePad}</Text>
-              <Text>  </Text>
-              <Text color={active ? undefined : "gray"}>{descTrunc || "无描述"}</Text>
-            </Box>
-          </React.Fragment>
+          <Box key={pi.key}>
+            <Text color={active ? "cyan" : "gray"}>
+              {active ? "  ❯ " : "    "}
+            </Text>
+            <Text color="green">[x]</Text>
+            <Text> </Text>
+            <Text color={active ? "white" : "cyan"} bold>{namePad}</Text>
+            <Text>  </Text>
+            <Text color={active ? undefined : "gray"}>{descTrunc || "无描述"}</Text>
+          </Box>
         );
       })}
 
-      {totalCount === 0 && (
-        <Box marginTop={1}>
-          <Text dimColor>  暂无已配置的插件，请选择上方入口添加</Text>
+      {filteredPlugins.length === 0 && totalCount > 0 && (
+        <Box>
+          <Text dimColor>  当前分组下暂无插件</Text>
         </Box>
       )}
 
-      <Box marginTop={1}>
-        <Text dimColor>  ↑/↓ 选择  Enter 确认  Esc 返回</Text>
-      </Box>
+      {totalCount === 0 && (
+        <Box>
+          <Text dimColor>  暂无已配置的插件，请选择上方入口添加</Text>
+        </Box>
+      )}
     </Box>
   );
 }
