@@ -1,0 +1,10 @@
+{
+  "private": true,
+  "scripts": {
+    "marketplace": "npx --prefix tools tsx tools/src/index.tsx",
+    "marketplace:init": "npx --prefix tools tsx tools/src/index.tsx init",
+    "marketplace:add": "npx --prefix tools tsx tools/src/index.tsx add",
+    "marketplace:generate": "npx --prefix tools tsx tools/src/index.tsx generate",
+    "test": "cd tools && npm test"
+  }
+}

@@ -11,7 +11,7 @@ import {
   type PluginEntry,
 } from "../utils/config.js";
 import { cloneOrPull, readRepoMarketplace } from "../utils/git.js";
-import path from "node:path";
+import { getConfigPath } from "../utils/paths.js";
 
 type Phase =
   | "input-url"
@@ -29,7 +29,7 @@ function AddApp() {
   const [selectedPlugin, setSelectedPlugin] = useState<Record<string, unknown> | null>(null);
   const [config, setConfig] = useState<SourcesConfig | null>(null);
 
-  const configPath = path.resolve(process.cwd(), "sources.json");
+  const configPath = getConfigPath();
 
   useEffect(() => {
     const c = readConfig(configPath);

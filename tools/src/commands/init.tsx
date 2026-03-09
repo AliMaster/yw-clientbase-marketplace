@@ -2,8 +2,8 @@ import React, { useState } from "react";
 import { render, Box, Text } from "ink";
 import TextInput from "ink-text-input";
 import { writeConfig, type SourcesConfig } from "../utils/config.js";
+import { getConfigPath } from "../utils/paths.js";
 import fs from "node:fs";
-import path from "node:path";
 
 type Step = "name" | "ownerName" | "ownerEmail" | "description" | "done";
 
@@ -43,7 +43,7 @@ function InitApp() {
           sources: [],
           categories: [],
         };
-        const configPath = path.resolve(process.cwd(), "sources.json");
+        const configPath = getConfigPath();
         writeConfig(configPath, config);
         setStep("done");
         break;
@@ -81,7 +81,7 @@ function InitApp() {
 }
 
 export function initCommand() {
-  const configPath = path.resolve(process.cwd(), "sources.json");
+  const configPath = getConfigPath();
   if (fs.existsSync(configPath)) {
     console.error("sources.json 已存在。如需重新初始化，请先手动删除该文件。");
     process.exit(1);

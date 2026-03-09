@@ -1,11 +1,12 @@
 import { readConfig } from "../utils/config.js";
 import { cloneOrPull, readRepoMarketplace } from "../utils/git.js";
 import { transformPlugin } from "../utils/transform.js";
+import { getConfigPath, getOutputPath } from "../utils/paths.js";
 import path from "node:path";
 import fs from "node:fs";
 
 export async function generateCommand() {
-  const configPath = path.resolve(process.cwd(), "sources.json");
+  const configPath = getConfigPath();
   const config = readConfig(configPath);
 
   if (!config) {
@@ -66,11 +67,7 @@ export async function generateCommand() {
     plugins: allPlugins,
   };
 
-  const outputPath = path.resolve(
-    process.cwd(),
-    ".claude-plugin",
-    "marketplace.json"
-  );
+  const outputPath = getOutputPath();
   fs.mkdirSync(path.dirname(outputPath), { recursive: true });
   fs.writeFileSync(outputPath, JSON.stringify(output, null, 2) + "\n", "utf-8");
 

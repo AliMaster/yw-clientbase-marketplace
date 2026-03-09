@@ -1,10 +1,7 @@
 import simpleGit from "simple-git";
 import fs from "node:fs";
 import path from "node:path";
-
-function getBuildDir(): string {
-  return path.resolve(process.cwd(), "build", "repos");
-}
+import { getBuildDir } from "./paths.js";
 
 export function getRepoDir(repoUrl: string): string {
   const parts = repoUrl.replace(/\.git$/, "").split("/");
