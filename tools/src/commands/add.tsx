@@ -142,12 +142,18 @@ export function AddFlow({ onDone }: { onDone: () => void }) {
         config.sources = config.sources.filter((s) => s.url !== url);
       }
     }
+    // 从所有分组的 recommendPlugins 中移除
+    for (const cat of config.categories) {
+      if (cat.recommendPlugins) {
+        cat.recommendPlugins = cat.recommendPlugins.filter((n) => n !== pluginName);
+      }
+    }
     writeConfig(configPath, config);
     setConfig({ ...config });
     setPhase("deleted");
   };
 
-  const handleSave = (description: string, category: string) => {
+  const handleSave = (description: string, category: string, recommended: boolean) => {
     if (!config) return;
 
     let source = config.sources.find((s) => s.url === url);
@@ -168,6 +174,24 @@ export function AddFlow({ onDone }: { onDone: () => void }) {
 
     if (category && !config.categories.find((c) => c.name === category)) {
       config.categories.push({ name: category });
+    }
+
+    // 更新对应分组的 recommendPlugins
+    const cat = config.categories.find((c) => c.name === category);
+    if (cat) {
+      if (!cat.recommendPlugins) cat.recommendPlugins = [];
+      const inList = cat.recommendPlugins.includes(pluginName);
+      if (recommended && !inList) {
+        cat.recommendPlugins.push(pluginName);
+      } else if (!recommended && inList) {
+        cat.recommendPlugins = cat.recommendPlugins.filter((n) => n !== pluginName);
+      }
+    }
+    // 如果分类变了，从旧分类的 recommendPlugins 中移除
+    for (const c of config.categories) {
+      if (c.name !== category && c.recommendPlugins) {
+        c.recommendPlugins = c.recommendPlugins.filter((n) => n !== pluginName);
+      }
     }
 
     writeConfig(configPath, config);
@@ -314,6 +338,9 @@ export function AddFlow({ onDone }: { onDone: () => void }) {
 
   if (phase === "edit-plugin" && selectedPlugin) {
     const overrides = getImportedOverrides(selectedPlugin.name as string);
+    const pluginCategory = overrides?.category || selectedPlugin.category as string || "";
+    const cat = config?.categories.find((c) => c.name === pluginCategory);
+    const isRecommended = cat?.recommendPlugins?.includes(selectedPlugin.name as string) || false;
     return (
       <PluginEditor
         original={{
@@ -325,6 +352,7 @@ export function AddFlow({ onDone }: { onDone: () => void }) {
         }}
         current={overrides ? { description: overrides.description, category: overrides.category } : null}
         categories={config?.categories.map((c) => c.name) || []}
+        recommended={isRecommended}
         onSave={handleSave}
         onCancel={() => setPhase("manage")}
       />
@@ -360,10 +388,16 @@ function ManageView({
   onCancel: () => void;
   restoreKey: string | null;
 }) {
+  // 判断插件是否在其分组的 recommendPlugins 中
+  const isRecommendedPlugin = (pluginName: string, category: string): boolean => {
+    const cat = config?.categories.find((c) => c.name === category);
+    return cat?.recommendPlugins?.includes(pluginName) || false;
+  };
+
   // 汇总所有已导入插件
   const allPlugins = useMemo(() => {
     if (!config) return [];
-    const result: { name: string; description: string; category: string; sourceUrl: string }[] = [];
+    const result: { name: string; description: string; category: string; sourceUrl: string; recommended: boolean }[] = [];
     for (const source of config.sources) {
       for (const plugin of source.plugins) {
         result.push({
@@ -371,6 +405,7 @@ function ManageView({
           description: plugin.description,
           category: plugin.category,
           sourceUrl: source.url,
+          recommended: isRecommendedPlugin(plugin.name, plugin.category),
         });
       }
     }
@@ -384,6 +419,7 @@ function ManageView({
   }, [config]);
 
   const [activeTab, setActiveTab] = useState(0);
+  const [onlyRecommended, setOnlyRecommended] = useState(false);
   const [cursor, setCursor] = useState(() => {
     // 初始光标：尝试恢复到上次选中的插件
     if (!restoreKey) return 0;
@@ -401,19 +437,25 @@ function ManageView({
   const { stdout } = useStdout();
   const termWidth = stdout?.columns || 120;
 
-  // 当前分组下的插件
+  // 当前分组 + 必装筛选下的插件
   const filteredPlugins = useMemo(() => {
-    if (activeTab === 0) return allPlugins;
-    const category = tabs[activeTab];
-    return allPlugins.filter((p) => p.category === category);
-  }, [allPlugins, activeTab, tabs]);
+    let result = allPlugins;
+    if (activeTab > 0) {
+      const category = tabs[activeTab];
+      result = result.filter((p) => p.category === category);
+    }
+    if (onlyRecommended) {
+      result = result.filter((p) => p.recommended);
+    }
+    return result;
+  }, [allPlugins, activeTab, tabs, onlyRecommended]);
 
   const totalCount = allPlugins.length;
 
   // 列表项：2 个添加入口 + 过滤后的插件（统一为一个可导航列表）
   type ListItem =
     | { type: "action"; key: string; label: string; action: () => void }
-    | { type: "plugin"; key: string; name: string; description: string; category: string; sourceUrl: string };
+    | { type: "plugin"; key: string; name: string; description: string; category: string; sourceUrl: string; recommended: boolean };
 
   const items: ListItem[] = useMemo(() => [
     { type: "action" as const, key: "__git__", label: "从 Git 仓库添加", action: onAddFromGit },
@@ -425,6 +467,7 @@ function ManageView({
       description: p.description,
       category: p.category,
       sourceUrl: p.sourceUrl,
+      recommended: p.recommended,
     })),
   ], [filteredPlugins, onAddFromGit, onAddFromLocal]);
 
@@ -434,14 +477,18 @@ function ManageView({
     return Math.min(maxName, 30);
   }, [allPlugins]);
 
-  // 切换 tab 时，保持光标在有效范围内
+  // 切换 tab 或筛选时，保持光标在有效范围内
   useEffect(() => {
     setCursor((c) => Math.min(c, items.length - 1));
-  }, [activeTab, items.length]);
+  }, [activeTab, onlyRecommended, items.length]);
 
   useInput((_ch, key) => {
     if (key.escape) {
       onCancel();
+      return;
+    }
+    if (key.tab) {
+      setOnlyRecommended((v) => !v);
       return;
     }
     if (key.upArrow) {
@@ -492,9 +539,13 @@ function ManageView({
         );
       })}
 
-      {/* 分组 tab + 操作提示 */}
+      {/* 分组 tab + 必装筛选 + 操作提示 */}
       <Box marginTop={1}>
         <Text>  </Text>
+        <Text color={onlyRecommended ? "yellow" : "gray"} bold={onlyRecommended}>
+          {onlyRecommended ? "[x]" : "[ ]"} 仅必装
+        </Text>
+        <Text dimColor>  </Text>
         {tabs.map((tab, i) => {
           const isActive = i === activeTab;
           const count = i === 0
@@ -511,7 +562,7 @@ function ManageView({
         })}
       </Box>
       <Box>
-        <Text dimColor>  ↑/↓ 选择  ←/→ 切换分组  Enter 确认  Esc 返回</Text>
+        <Text dimColor>  ↑/↓ 选择  ←/→ 切换分组  Tab 筛选必装  Enter 确认  Esc 返回</Text>
       </Box>
 
       {/* 分隔线 */}
@@ -523,7 +574,7 @@ function ManageView({
       {items.filter((it) => it.type === "plugin").map((item, i) => {
         const globalIdx = i + 2; // 前面 2 个 action
         const active = globalIdx === cursor;
-        const pi = item as { name: string; description: string; category: string; sourceUrl: string; key: string };
+        const pi = item as { name: string; description: string; category: string; sourceUrl: string; key: string; recommended: boolean };
         const nameTrunc = pi.name.length > nameColWidth
           ? pi.name.slice(0, nameColWidth - 1) + "~"
           : pi.name;
@@ -539,6 +590,7 @@ function ManageView({
             <Text color={active ? "cyan" : "gray"}>
               {active ? "  ❯ " : "    "}
             </Text>
+            <Text color="yellow">{pi.recommended ? "★" : " "}</Text>
             <Text color="green">[x]</Text>
             <Text> </Text>
             <Text color={active ? "white" : "cyan"} bold>{namePad}</Text>

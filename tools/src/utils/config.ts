@@ -13,6 +13,7 @@ export interface SourceEntry {
 
 export interface CategoryEntry {
   name: string;
+  recommendPlugins?: string[];
 }
 
 export interface SourcesConfig {
