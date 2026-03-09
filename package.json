@@ -1,7 +1,10 @@
 {
   "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
-    "ccmarket": "npx --prefix tools tsx tools/src/index.tsx",
-    "test": "cd tools && npm test"
+    "ccmarket": "npx --prefix packages/ccmarket tsx packages/ccmarket/src/index.tsx",
+    "test": "cd packages/ccmarket && npm test"
   }
 }
