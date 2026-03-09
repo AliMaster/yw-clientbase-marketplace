@@ -50,7 +50,7 @@ describe("config", () => {
           plugins: [{ name: "plugin-a", description: "A", category: "dev" }],
         },
       ],
-      categories: [{ name: "dev", description: "Development" }],
+      categories: ["dev"],
     };
     writeConfig(configPath, config);
 

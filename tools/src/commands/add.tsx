@@ -101,8 +101,8 @@ export function AddFlow({ onDone }: { onDone: () => void }) {
       source.plugins.push(entry);
     }
 
-    if (category && !config.categories.find((c) => c.name === category)) {
-      config.categories.push({ name: category, description: "" });
+    if (category && !config.categories.includes(category)) {
+      config.categories.push(category);
     }
 
     writeConfig(configPath, config);
@@ -177,7 +177,7 @@ export function AddFlow({ onDone }: { onDone: () => void }) {
           tags: selectedPlugin.tags as string[] | undefined,
         }}
         current={overrides ? { description: overrides.description, category: overrides.category } : null}
-        categories={config?.categories.map((c) => c.name) || []}
+        categories={config?.categories || []}
         onSave={handleSave}
         onCancel={() => setPhase("select-plugin")}
       />

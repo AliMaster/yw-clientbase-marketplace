@@ -11,10 +11,7 @@ export interface SourceEntry {
   plugins: PluginEntry[];
 }
 
-export interface CategoryEntry {
-  name: string;
-  description: string;
-}
+export type CategoryEntry = string;
 
 export interface SourcesConfig {
   marketplace: {
