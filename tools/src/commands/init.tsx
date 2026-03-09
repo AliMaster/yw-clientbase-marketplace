@@ -36,8 +36,8 @@ function AlreadyExists({ onBack }: { onBack: () => void }) {
   });
   return (
     <Box paddingLeft={2} flexDirection="column">
-      <Text color="yellow">  marketconfig.json 已存在，请使用「修改配置」来编辑。</Text>
-      <Text dimColor>  按 Enter 返回</Text>
+      <Text color="yellow">  marketconfig.json 已存在，请使用「编辑市场配置」来编辑。</Text>
+      <Text dimColor>  按 Enter 或 Esc 返回</Text>
     </Box>
   );
 }
@@ -54,15 +54,30 @@ function InitForm({ onDone }: { onDone: () => void }) {
   const [input, setInput] = useState("");
 
   useInput((_ch, key) => {
-    if (!done && key.upArrow && activeIndex > 0) {
+    if (done) {
+      if (key.return || key.escape) onDone();
+      return;
+    }
+    if (key.escape) {
+      if (activeIndex > 0) {
+        // Esc 回到上一项
+        const currentField = FIELDS[activeIndex];
+        setValues((v) => ({ ...v, [currentField]: input }));
+        const prevIndex = activeIndex - 1;
+        setActiveIndex(prevIndex);
+        setInput(values[FIELDS[prevIndex]]);
+      } else {
+        // 第一项时 Esc 返回主菜单
+        onDone();
+      }
+      return;
+    }
+    if (key.upArrow && activeIndex > 0) {
       const currentField = FIELDS[activeIndex];
       setValues((v) => ({ ...v, [currentField]: input }));
       const prevIndex = activeIndex - 1;
       setActiveIndex(prevIndex);
       setInput(values[FIELDS[prevIndex]]);
-    }
-    if (done && (key.return || key.escape)) {
-      onDone();
     }
   });
 
@@ -96,13 +111,13 @@ function InitForm({ onDone }: { onDone: () => void }) {
     <Box flexDirection="column" paddingLeft={2}>
       <Box marginBottom={1}>
         <Text bold color="yellow">  创建配置</Text>
-        {!done && <Text dimColor>  (↑ 回到上一项修改)</Text>}
+        {!done && <Text dimColor>  (↑/Esc 上一项, Enter 下一项)</Text>}
       </Box>
 
       {FIELDS.slice(0, activeIndex).map((f) => (
         <Box key={f}>
           <Text color="green">  ✓ </Text>
-          <Text dimColor>{FIELD_CONFIG[f].label}: </Text>
+          <Text color="cyan">{FIELD_CONFIG[f].label}: </Text>
           <Text>{values[f] || (f === "ownerEmail" ? "(跳过)" : "")}</Text>
         </Box>
       ))}
@@ -110,7 +125,7 @@ function InitForm({ onDone }: { onDone: () => void }) {
       {!done && (
         <Box flexDirection="column">
           <Box>
-            <Text color="cyan" bold>  › </Text>
+            <Text color="green" bold>  › </Text>
             <Text bold>{FIELD_CONFIG[activeField].label}</Text>
             <Text dimColor>  {FIELD_CONFIG[activeField].hint}</Text>
           </Box>
@@ -126,14 +141,14 @@ function InitForm({ onDone }: { onDone: () => void }) {
           {FIELDS.map((f) => (
             <Box key={f}>
               <Text color="green">  ✓ </Text>
-              <Text dimColor>{FIELD_CONFIG[f].label}: </Text>
+              <Text color="cyan">{FIELD_CONFIG[f].label}: </Text>
               <Text>{values[f] || (f === "ownerEmail" ? "(跳过)" : "")}</Text>
             </Box>
           ))}
           <Box marginTop={1}>
             <Text color="green" bold>  ✓ marketconfig.json 已创建！</Text>
           </Box>
-          <Text dimColor>  按 Enter 返回主菜单</Text>
+          <Text dimColor>  按 Enter 或 Esc 返回主菜单</Text>
         </>
       )}
     </Box>

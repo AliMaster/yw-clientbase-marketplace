@@ -47,7 +47,12 @@ export function ConfigView({
   const [editValue, setEditValue] = useState("");
 
   useInput((_ch, key) => {
-    if (editing) return;
+    if (editing) {
+      if (key.escape) {
+        setEditing(false);
+      }
+      return;
+    }
     if (key.escape) {
       onDone();
       return;
@@ -76,7 +81,7 @@ export function ConfigView({
     <Box flexDirection="column" paddingLeft={2}>
       <Box marginBottom={1}>
         <Text bold color="yellow">  修改配置</Text>
-        <Text dimColor>  (↑/↓ 选择, Enter 编辑, Esc 返回)</Text>
+        <Text dimColor>  (↑/↓ 选择, Enter 编辑, Esc 返回/取消)</Text>
       </Box>
 
       {FIELDS.map((f, i) => {
