@@ -15,6 +15,15 @@ interface LogLine {
   color?: string;
 }
 
+/**
+ * 生成 marketplace.json 的流程组件。
+ *
+ * 遍历 config.sources，对每个源：
+ * - 本地源（url 以 "./" 开头）：直接读取 plugin.json，只保留核心字段
+ * - Git 源：克隆/拉取仓库后读取 marketplace.json
+ *
+ * 最终输出合并后的 marketplace.json 到 .claude-plugin/ 目录。
+ */
 export function GenerateFlow({ onDone }: { onDone: () => void }) {
   const [phase, setPhase] = useState<Phase>("running");
   const [logs, setLogs] = useState<LogLine[]>([]);
@@ -58,6 +67,7 @@ export function GenerateFlow({ onDone }: { onDone: () => void }) {
               continue;
             }
 
+            // 本地插件只保留核心字段：name, description, version, author, source, category
             let pluginData: Record<string, unknown>;
             try {
               const raw = JSON.parse(fs.readFileSync(pluginJsonPath, "utf-8"));

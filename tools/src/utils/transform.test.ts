@@ -1,5 +1,48 @@
 import { describe, it, expect } from "vitest";
-import { transformPlugin } from "./transform.js";
+import { transformPlugin, transformSource } from "./transform.js";
+
+describe("transformSource", () => {
+  it("returns repoUrl string for local source (repoUrl starts with ./)", () => {
+    const result = transformSource(undefined, "./plugins/pyright");
+    expect(result).toBe("./plugins/pyright");
+  });
+
+  it("returns repoUrl string for local even when source is a string", () => {
+    const result = transformSource("./something", "./plugins/pyright");
+    expect(result).toBe("./plugins/pyright");
+  });
+
+  it("returns object unchanged when source is an object", () => {
+    const obj = { source: "git-subdir", url: "https://x.git", path: "sub" };
+    const result = transformSource(obj, "https://x.git");
+    expect(result).toEqual(obj);
+  });
+
+  it("converts ./path to git-subdir for git repoUrl", () => {
+    const result = transformSource("./dart-analyzer", "https://github.com/repo.git");
+    expect(result).toEqual({
+      source: "git-subdir",
+      url: "https://github.com/repo.git",
+      path: "dart-analyzer",
+    });
+  });
+
+  it("converts URL string to url object", () => {
+    const result = transformSource("https://github.com/superpowers.git", "https://other.git");
+    expect(result).toEqual({
+      source: "url",
+      url: "https://github.com/superpowers.git",
+    });
+  });
+
+  it("falls back to repoUrl when source is undefined and repoUrl is not local", () => {
+    const result = transformSource(undefined, "https://github.com/repo.git");
+    expect(result).toEqual({
+      source: "url",
+      url: "https://github.com/repo.git",
+    });
+  });
+});
 
 describe("transformPlugin", () => {
   const repoUrl = "https://github.com/boostvolt/claude-code-lsps.git";
@@ -82,5 +125,23 @@ describe("transformPlugin", () => {
     expect(result.version).toBe("2.0.0");
     expect(result.tags).toEqual(["a", "b"]);
     expect(result.strict).toBe(true);
+  });
+
+  it("transforms local plugin (no source field) with local repoUrl", () => {
+    const plugin = {
+      name: "pyright",
+      version: "1.0.0",
+      description: "Original",
+      author: { name: "Author" },
+    };
+    const overrides = { description: "Custom", category: "dev" };
+
+    const result = transformPlugin(plugin, "./plugins/pyright", overrides);
+
+    expect(result.source).toBe("./plugins/pyright");
+    expect(result.description).toBe("Custom");
+    expect(result.category).toBe("dev");
+    expect(result.name).toBe("pyright");
+    expect(result.author).toEqual({ name: "Author" });
   });
 });

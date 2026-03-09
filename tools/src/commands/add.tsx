@@ -14,6 +14,14 @@ import { cloneOrPull, readRepoMarketplace } from "../utils/git.js";
 import { getConfigPath, getProjectRoot } from "../utils/paths.js";
 import { scanLocalPlugins } from "../utils/local.js";
 
+/**
+ * 插件管理流程的状态机。
+ *
+ * Phase 流转：
+ *   manage (默认) ──→ choose-source ──→ input-url ──→ cloning ──→ select-plugin
+ *                 ──→ select-local ──→ edit-plugin ──→ saved ──→ manage
+ *                 ──→ plugin-action ──→ edit-plugin / confirm-delete ──→ deleted ──→ manage
+ */
 type Phase =
   | "manage"
   | "choose-source"
@@ -94,6 +102,7 @@ export function AddFlow({ onDone }: { onDone: () => void }) {
     }
   };
 
+  /** 从 Git 仓库选中的插件列表（select-plugin phase 使用） */
   const handlePluginSelect = (plugin: { name: string; imported: boolean }) => {
     const full = repoPlugins.find((p) => p.name === plugin.name) || null;
     setSelectedPlugin(full);
@@ -104,6 +113,7 @@ export function AddFlow({ onDone }: { onDone: () => void }) {
     }
   };
 
+  /** 管理页面中选中已导入插件，进入编辑/删除操作 */
   const handleManagePluginSelect = (pluginName: string, sourceUrl: string) => {
     setUrl(sourceUrl);
     // 从 config 中找到该插件的原始数据
@@ -162,6 +172,7 @@ export function AddFlow({ onDone }: { onDone: () => void }) {
     setPhase("saved");
   };
 
+  /** 本地插件选中后，设置 url 为本地路径（如 ./plugins/pyright），进入编辑 */
   const handleLocalPluginSelect = (plugin: { name: string; version?: string; description?: string; path: string }) => {
     setUrl(plugin.path);
     setSelectedPlugin({
