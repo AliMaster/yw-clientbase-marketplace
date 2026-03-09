@@ -14,6 +14,7 @@ import { cloneOrPull, readRepoMarketplace } from "../utils/git.js";
 import { getConfigPath } from "../utils/paths.js";
 
 type Phase =
+  | "choose-source"
   | "input-url"
   | "cloning"
   | "select-plugin"
@@ -22,7 +23,7 @@ type Phase =
   | "error";
 
 export function AddFlow({ onDone }: { onDone: () => void }) {
-  const [phase, setPhase] = useState<Phase>("input-url");
+  const [phase, setPhase] = useState<Phase>("choose-source");
   const [url, setUrl] = useState("");
   const [error, setError] = useState("");
   const [repoPlugins, setRepoPlugins] = useState<Record<string, unknown>[]>([]);
@@ -31,9 +32,11 @@ export function AddFlow({ onDone }: { onDone: () => void }) {
 
   const configPath = getConfigPath();
 
-  // Esc 在输入 URL 和 cloning 阶段返回主菜单
   useInput((_ch, key) => {
     if (key.escape && (phase === "input-url" || phase === "cloning")) {
+      setPhase("choose-source");
+    }
+    if (key.escape && phase === "choose-source") {
       onDone();
     }
   });
@@ -46,6 +49,10 @@ export function AddFlow({ onDone }: { onDone: () => void }) {
       return;
     }
     setConfig(c);
+    // 如果没有已有源，直接进入输入 URL
+    if (c.sources.length === 0) {
+      setPhase("input-url");
+    }
   }, []);
 
   const isImported = (pluginName: string): boolean => {
@@ -64,11 +71,11 @@ export function AddFlow({ onDone }: { onDone: () => void }) {
     return null;
   };
 
-  const handleUrlSubmit = async (inputUrl: string) => {
-    setUrl(inputUrl);
+  const loadRepo = async (repoUrl: string) => {
+    setUrl(repoUrl);
     setPhase("cloning");
     try {
-      const repoDir = await cloneOrPull(inputUrl);
+      const repoDir = await cloneOrPull(repoUrl);
       const marketplace = readRepoMarketplace(repoDir);
       if (!marketplace || !Array.isArray(marketplace.plugins)) {
         setError("该仓库中未找到有效的 .claude-plugin/marketplace.json");
@@ -117,6 +124,22 @@ export function AddFlow({ onDone }: { onDone: () => void }) {
     setPhase("saved");
   };
 
+  // 选择来源：已有仓库 or 新仓库
+  if (phase === "choose-source") {
+    const existingSources = config?.sources || [];
+    return (
+      <SourceChooser
+        sources={existingSources.map((s) => ({
+          url: s.url,
+          pluginCount: s.plugins.length,
+        }))}
+        onSelectExisting={(sourceUrl) => loadRepo(sourceUrl)}
+        onSelectNew={() => setPhase("input-url")}
+        onCancel={onDone}
+      />
+    );
+  }
+
   if (phase === "input-url") {
     return (
       <Box flexDirection="column" paddingLeft={2}>
@@ -129,7 +152,7 @@ export function AddFlow({ onDone }: { onDone: () => void }) {
         </Box>
         <Box>
           <Text color="cyan">  › </Text>
-          <TextInput value={url} onChange={setUrl} onSubmit={handleUrlSubmit} />
+          <TextInput value={url} onChange={setUrl} onSubmit={(v) => loadRepo(v)} />
         </Box>
       </Box>
     );
@@ -167,7 +190,7 @@ export function AddFlow({ onDone }: { onDone: () => void }) {
         <PluginList
           plugins={items}
           onSelect={handlePluginSelect}
-          onCancel={onDone}
+          onCancel={() => setPhase("choose-source")}
         />
       </Box>
     );
@@ -197,12 +220,90 @@ export function AddFlow({ onDone }: { onDone: () => void }) {
       <SavedPhase
         pluginName={(selectedPlugin as Record<string, unknown>).name as string}
         onContinue={() => setPhase("select-plugin")}
-        onBack={onDone}
+        onBack={() => setPhase("choose-source")}
       />
     );
   }
 
   return null;
+}
+
+// 来源选择器
+function SourceChooser({
+  sources,
+  onSelectExisting,
+  onSelectNew,
+  onCancel,
+}: {
+  sources: { url: string; pluginCount: number }[];
+  onSelectExisting: (url: string) => void;
+  onSelectNew: () => void;
+  onCancel: () => void;
+}) {
+  const items = [
+    ...sources.map((s) => {
+      const name = s.url.replace(/\.git$/, "").split("/").pop() || s.url;
+      return { key: s.url, label: name, detail: `${s.pluginCount} 个已导入`, isNew: false };
+    }),
+    { key: "__new__", label: "输入新的 Git 仓库地址", detail: "", isNew: true },
+  ];
+
+  const [cursor, setCursor] = useState(0);
+
+  useInput((_ch, key) => {
+    if (key.escape) {
+      onCancel();
+      return;
+    }
+    if (key.upArrow) {
+      setCursor((c) => (c > 0 ? c - 1 : items.length - 1));
+    }
+    if (key.downArrow) {
+      setCursor((c) => (c < items.length - 1 ? c + 1 : 0));
+    }
+    if (key.return) {
+      const item = items[cursor];
+      if (item.key === "__new__") {
+        onSelectNew();
+      } else {
+        onSelectExisting(item.key);
+      }
+    }
+  });
+
+  return (
+    <Box flexDirection="column" paddingLeft={2}>
+      <Box marginBottom={1}>
+        <Text bold color="yellow">  添加插件</Text>
+        <Text dimColor>  (↑/↓ 选择, Enter 确认, Esc 返回)</Text>
+      </Box>
+
+      <Box marginBottom={1}>
+        <Text dimColor>  选择插件来源:</Text>
+      </Box>
+
+      {items.map((item, i) => {
+        const active = i === cursor;
+        return (
+          <Box key={item.key}>
+            <Text color={active ? "cyan" : "gray"}>
+              {active ? "  ❯ " : "    "}
+            </Text>
+            {item.isNew ? (
+              <Text color={active ? "green" : undefined} bold={active}>
+                + {item.label}
+              </Text>
+            ) : (
+              <>
+                <Text bold={active}>{item.label}</Text>
+                <Text dimColor>  ({item.detail})</Text>
+              </>
+            )}
+          </Box>
+        );
+      })}
+    </Box>
+  );
 }
 
 function ErrorView({ error, onBack }: { error: string; onBack: () => void }) {
@@ -233,7 +334,7 @@ function SavedPhase({
   return (
     <Box flexDirection="column" paddingLeft={2}>
       <Text color="green" bold>  ✓ 已保存 {pluginName}</Text>
-      <Text dimColor>  Enter 继续添加  |  Esc 返回主菜单</Text>
+      <Text dimColor>  Enter 继续添加  |  Esc 返回</Text>
     </Box>
   );
 }
