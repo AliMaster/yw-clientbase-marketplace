@@ -5,20 +5,17 @@ import { writeConfig, type SourcesConfig } from "../utils/config.js";
 import { getConfigPath } from "../utils/paths.js";
 import fs from "node:fs";
 
-type Step = "welcome" | "name" | "ownerName" | "ownerEmail" | "description" | "done";
+const FIELDS = ["name", "ownerName", "ownerEmail", "description"] as const;
+type Field = (typeof FIELDS)[number];
 
-const TOTAL_STEPS = 4;
+const FIELD_CONFIG: Record<Field, { label: string; hint: string }> = {
+  name: { label: "Marketplace 名称", hint: "例如: my-team-marketplace" },
+  ownerName: { label: "Owner 名称", hint: "例如: your-name" },
+  ownerEmail: { label: "Owner Email", hint: "可选，回车跳过" },
+  description: { label: "市场描述", hint: "简短介绍这个插件市场的用途" },
+};
 
-function stepIndex(step: Step): number {
-  const map: Record<string, number> = { name: 1, ownerName: 2, ownerEmail: 3, description: 4 };
-  return map[step] ?? 0;
-}
-
-function Welcome({ onStart }: { onStart: () => void }) {
-  useInput((_input, key) => {
-    if (key.return) onStart();
-  });
-
+function Header() {
   return (
     <Box flexDirection="column">
       <Box marginBottom={1}>
@@ -51,112 +48,195 @@ function Welcome({ onStart }: { onStart: () => void }) {
         <Text dimColor>  2. ccmarket add        选择并导入插件</Text>
         <Text dimColor>  3. ccmarket generate   生成发布文件</Text>
       </Box>
+    </Box>
+  );
+}
 
-      <Box borderStyle="round" borderColor="gray" paddingX={1}>
-        <Text dimColor>按 <Text color="white" bold>Enter</Text> 开始配置</Text>
+function CompletedField({
+  field,
+  value,
+  active,
+  onEdit,
+}: {
+  field: Field;
+  value: string;
+  active: boolean;
+  onEdit: () => void;
+}) {
+  const { label } = FIELD_CONFIG[field];
+  const display = value || (field === "ownerEmail" ? "(跳过)" : "");
+  return (
+    <Box>
+      <Text color="green">  ✓ </Text>
+      <Text dimColor>{label}: </Text>
+      <Text>{display}</Text>
+      {active && <Text dimColor>  ← 当前编辑</Text>}
+      {!active && <Text dimColor>  </Text>}
+    </Box>
+  );
+}
+
+function ActiveField({
+  field,
+  value,
+  onChange,
+  onSubmit,
+}: {
+  field: Field;
+  value: string;
+  onChange: (v: string) => void;
+  onSubmit: (v: string) => void;
+}) {
+  const { label, hint } = FIELD_CONFIG[field];
+  return (
+    <Box flexDirection="column">
+      <Box>
+        <Text color="cyan" bold>  › </Text>
+        <Text bold>{label}</Text>
+        <Text dimColor>  {hint}</Text>
+      </Box>
+      <Box>
+        <Text>    </Text>
+        <TextInput value={value} onChange={onChange} onSubmit={onSubmit} />
       </Box>
     </Box>
   );
 }
 
-function ProgressBar({ current, total }: { current: number; total: number }) {
-  const filled = current;
-  const empty = total - current;
+function DoneView({ values }: { values: Record<Field, string> }) {
   return (
-    <Box marginBottom={1}>
-      <Text dimColor>  [{current}/{total}] </Text>
-      <Text color="green">{"█".repeat(filled)}</Text>
-      <Text dimColor>{"░".repeat(empty)}</Text>
+    <Box flexDirection="column" marginTop={1}>
+      <Box marginBottom={1}>
+        <Text color="green" bold>  ✓ marketconfig.json 已创建！</Text>
+      </Box>
+      <Box flexDirection="column" paddingLeft={2} marginBottom={1}>
+        <Text>  <Text dimColor>Name:       </Text> {values.name}</Text>
+        <Text>  <Text dimColor>Owner:      </Text> {values.ownerName}{values.ownerEmail ? ` <${values.ownerEmail}>` : ""}</Text>
+        <Text>  <Text dimColor>Description:</Text> {values.description}</Text>
+      </Box>
+      <Box borderStyle="round" borderColor="gray" paddingX={1}>
+        <Text dimColor>下一步: 运行 <Text color="white" bold>ccmarket add</Text> 来添加插件</Text>
+      </Box>
     </Box>
   );
 }
 
 function InitApp() {
-  const [step, setStep] = useState<Step>("welcome");
-  const [name, setName] = useState("");
-  const [ownerName, setOwnerName] = useState("");
-  const [ownerEmail, setOwnerEmail] = useState("");
-  const [description, setDescription] = useState("");
+  const [started, setStarted] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [done, setDone] = useState(false);
+  const [values, setValues] = useState<Record<Field, string>>({
+    name: "",
+    ownerName: "",
+    ownerEmail: "",
+    description: "",
+  });
   const [input, setInput] = useState("");
 
-  const handleSubmit = (value: string) => {
-    switch (step) {
-      case "name":
-        setName(value);
-        setInput("");
-        setStep("ownerName");
-        break;
-      case "ownerName":
-        setOwnerName(value);
-        setInput("");
-        setStep("ownerEmail");
-        break;
-      case "ownerEmail":
-        setOwnerEmail(value);
-        setInput("");
-        setStep("description");
-        break;
-      case "description": {
-        setDescription(value);
-        const config: SourcesConfig = {
-          marketplace: {
-            name: name,
-            owner: { name: ownerName, email: ownerEmail },
-            metadata: { description: value, version: "" },
-          },
-          sources: [],
-          categories: [],
-        };
-        const configPath = getConfigPath();
-        writeConfig(configPath, config);
-        setStep("done");
-        break;
+  // 欢迎页按 Enter 开始
+  useInput((_ch, key) => {
+    if (!started && key.return) {
+      setStarted(true);
+      return;
+    }
+    if (started && !done) {
+      // ↑ 回到上一个已填字段编辑
+      if (key.upArrow && activeIndex > 0) {
+        // 保存当前输入
+        const currentField = FIELDS[activeIndex];
+        setValues((v) => ({ ...v, [currentField]: input }));
+        const prevIndex = activeIndex - 1;
+        setActiveIndex(prevIndex);
+        setInput(values[FIELDS[prevIndex]]);
       }
+    }
+  });
+
+  const handleSubmit = (value: string) => {
+    const currentField = FIELDS[activeIndex];
+    const newValues = { ...values, [currentField]: value };
+    setValues(newValues);
+
+    if (activeIndex < FIELDS.length - 1) {
+      // 还有下一个字段
+      const nextIndex = activeIndex + 1;
+      setActiveIndex(nextIndex);
+      setInput(newValues[FIELDS[nextIndex]]);
+    } else {
+      // 全部填完，写入文件
+      const config: SourcesConfig = {
+        marketplace: {
+          name: newValues.name,
+          owner: { name: newValues.ownerName, email: newValues.ownerEmail },
+          metadata: { description: newValues.description, version: "" },
+        },
+        sources: [],
+        categories: [],
+      };
+      writeConfig(getConfigPath(), config);
+      setDone(true);
     }
   };
 
-  if (step === "welcome") {
-    return <Welcome onStart={() => setStep("name")} />;
-  }
-
-  if (step === "done") {
-    return (
-      <Box flexDirection="column" marginTop={1}>
-        <Box marginBottom={1}>
-          <Text color="green" bold> marketconfig.json 已创建！</Text>
-        </Box>
-        <Box flexDirection="column" paddingLeft={2} marginBottom={1}>
-          <Text>  <Text dimColor>Name:       </Text> {name}</Text>
-          <Text>  <Text dimColor>Owner:      </Text> {ownerName}{ownerEmail ? ` <${ownerEmail}>` : ""}</Text>
-          <Text>  <Text dimColor>Description:</Text> {description}</Text>
-        </Box>
-        <Box borderStyle="round" borderColor="gray" paddingX={1}>
-          <Text dimColor>下一步: 运行 <Text color="white" bold>ccmarket add</Text> 来添加插件</Text>
-        </Box>
-      </Box>
-    );
-  }
-
-  const labels: Record<string, { title: string; hint?: string }> = {
-    name: { title: "Marketplace 名称", hint: "例如: my-team-marketplace" },
-    ownerName: { title: "Owner 名称", hint: "例如: your-name" },
-    ownerEmail: { title: "Owner Email", hint: "可选，回车跳过" },
-    description: { title: "市场描述", hint: "简短介绍这个插件市场的用途" },
-  };
-
-  const { title, hint } = labels[step];
+  const activeField = FIELDS[activeIndex];
 
   return (
     <Box flexDirection="column">
-      <ProgressBar current={stepIndex(step)} total={TOTAL_STEPS} />
-      <Box paddingLeft={2} flexDirection="column">
-        <Text bold color="cyan">  {title}</Text>
-        {hint && <Text dimColor>  {hint}</Text>}
-        <Box marginTop={1}>
-          <Text color="cyan">  › </Text>
-          <TextInput value={input} onChange={setInput} onSubmit={handleSubmit} />
+      <Header />
+
+      {!started && (
+        <Box borderStyle="round" borderColor="gray" paddingX={1}>
+          <Text dimColor>按 <Text color="white" bold>Enter</Text> 开始配置</Text>
         </Box>
-      </Box>
+      )}
+
+      {started && (
+        <Box flexDirection="column">
+          <Box marginBottom={1}>
+            <Text bold color="yellow">  配置信息</Text>
+            {!done && (
+              <Text dimColor>  (↑ 回到上一项修改)</Text>
+            )}
+          </Box>
+
+          {/* 已完成的字段 */}
+          {FIELDS.slice(0, activeIndex).map((f) => (
+            <CompletedField
+              key={f}
+              field={f}
+              value={values[f]}
+              active={false}
+              onEdit={() => {}}
+            />
+          ))}
+
+          {/* 当前正在编辑的字段 */}
+          {!done && (
+            <ActiveField
+              field={activeField}
+              value={input}
+              onChange={setInput}
+              onSubmit={handleSubmit}
+            />
+          )}
+
+          {/* done 状态下展示全部字段 + 完成信息 */}
+          {done && (
+            <>
+              {FIELDS.map((f) => (
+                <CompletedField
+                  key={f}
+                  field={f}
+                  value={values[f]}
+                  active={false}
+                  onEdit={() => {}}
+                />
+              ))}
+              <DoneView values={values} />
+            </>
+          )}
+        </Box>
+      )}
     </Box>
   );
 }
