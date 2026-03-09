@@ -8,6 +8,12 @@ export function transformSource(
   repoUrl: string
 ): Record<string, unknown> {
   if (typeof source === "object") return source;
+  if (source.startsWith("local:")) {
+    return {
+      source: "local",
+      path: source.slice("local:".length),
+    };
+  }
   if (source.startsWith("./")) {
     return {
       source: "git-subdir",
