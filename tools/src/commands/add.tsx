@@ -31,6 +31,13 @@ export function AddFlow({ onDone }: { onDone: () => void }) {
 
   const configPath = getConfigPath();
 
+  // Esc 在输入 URL 和 cloning 阶段返回主菜单
+  useInput((_ch, key) => {
+    if (key.escape && (phase === "input-url" || phase === "cloning")) {
+      onDone();
+    }
+  });
+
   useEffect(() => {
     const c = readConfig(configPath);
     if (!c) {
@@ -115,6 +122,7 @@ export function AddFlow({ onDone }: { onDone: () => void }) {
       <Box flexDirection="column" paddingLeft={2}>
         <Box marginBottom={1}>
           <Text bold color="yellow">  添加插件</Text>
+          <Text dimColor>  (Esc 返回)</Text>
         </Box>
         <Box>
           <Text bold>  Git 仓库地址: </Text>
