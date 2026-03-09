@@ -8,11 +8,12 @@ export function getProjectRoot(): string {
   try {
     _projectRoot = execSync("git rev-parse --show-toplevel", {
       encoding: "utf-8",
+      stdio: ["pipe", "pipe", "ignore"],
     }).trim();
     return _projectRoot;
   } catch {
-    // fallback: 工具代码在 tools/ 下，根目录是上一级
-    _projectRoot = path.resolve(import.meta.dirname, "..", "..", "..");
+    // 不在 git 仓库中时，使用当前工作目录
+    _projectRoot = process.cwd();
     return _projectRoot;
   }
 }

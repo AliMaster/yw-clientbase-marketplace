@@ -5,7 +5,7 @@ import { addCommand } from "./commands/add.js";
 import { generateCommand } from "./commands/generate.js";
 
 program
-  .name("marketplace")
+  .name("ccmarket")
   .description("Claude Code 插件市场管理工具");
 
 program
