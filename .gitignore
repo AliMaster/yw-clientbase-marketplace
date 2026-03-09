@@ -36,3 +36,5 @@ logs/
 .cache/
 .turbo/
 .parcel-cache/
+
+.claude/
