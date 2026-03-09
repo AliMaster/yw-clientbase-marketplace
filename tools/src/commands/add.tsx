@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { render, Box, Text, useInput } from "ink";
+import { Box, Text, useInput } from "ink";
 import TextInput from "ink-text-input";
 import Spinner from "ink-spinner";
 import { PluginList } from "../components/PluginList.js";
@@ -21,7 +21,7 @@ type Phase =
   | "saved"
   | "error";
 
-function AddApp() {
+export function AddFlow({ onDone }: { onDone: () => void }) {
   const [phase, setPhase] = useState<Phase>("input-url");
   const [url, setUrl] = useState("");
   const [error, setError] = useState("");
@@ -34,7 +34,7 @@ function AddApp() {
   useEffect(() => {
     const c = readConfig(configPath);
     if (!c) {
-      setError("未找到 marketconfig.json，请先运行 ccmarket init");
+      setError("未找到 marketconfig.json，请先创建配置");
       setPhase("error");
       return;
     }
@@ -48,9 +48,7 @@ function AddApp() {
     );
   };
 
-  const getImportedOverrides = (
-    pluginName: string
-  ): PluginEntry | null => {
+  const getImportedOverrides = (pluginName: string): PluginEntry | null => {
     if (!config) return null;
     for (const s of config.sources) {
       const found = s.plugins.find((p) => p.name === pluginName);
@@ -62,7 +60,6 @@ function AddApp() {
   const handleUrlSubmit = async (inputUrl: string) => {
     setUrl(inputUrl);
     setPhase("cloning");
-
     try {
       const repoDir = await cloneOrPull(inputUrl);
       const marketplace = readRepoMarketplace(repoDir);
@@ -96,11 +93,7 @@ function AddApp() {
 
     const pluginName = (selectedPlugin as Record<string, unknown>).name as string;
     const existing = source.plugins.findIndex((p) => p.name === pluginName);
-    const entry: PluginEntry = {
-      name: pluginName,
-      description,
-      category,
-    };
+    const entry: PluginEntry = { name: pluginName, description, category };
 
     if (existing >= 0) {
       source.plugins[existing] = entry;
@@ -108,7 +101,6 @@ function AddApp() {
       source.plugins.push(entry);
     }
 
-    // 如果 category 不在 categories 中，自动添加
     if (category && !config.categories.find((c) => c.name === category)) {
       config.categories.push({ name: category, description: "" });
     }
@@ -120,15 +112,16 @@ function AddApp() {
 
   if (phase === "input-url") {
     return (
-      <Box flexDirection="column">
-        <Text bold>请输入 Git 仓库地址:</Text>
+      <Box flexDirection="column" paddingLeft={2}>
+        <Box marginBottom={1}>
+          <Text bold color="yellow">  添加插件</Text>
+        </Box>
         <Box>
-          <Text color="cyan">&gt; </Text>
-          <TextInput
-            value={url}
-            onChange={setUrl}
-            onSubmit={handleUrlSubmit}
-          />
+          <Text bold>  Git 仓库地址: </Text>
+        </Box>
+        <Box>
+          <Text color="cyan">  › </Text>
+          <TextInput value={url} onChange={setUrl} onSubmit={handleUrlSubmit} />
         </Box>
       </Box>
     );
@@ -136,15 +129,15 @@ function AddApp() {
 
   if (phase === "cloning") {
     return (
-      <Box>
-        <Text color="green"><Spinner type="dots" /></Text>
+      <Box paddingLeft={2}>
+        <Text color="green">  <Spinner type="dots" /></Text>
         <Text> 正在克隆仓库...</Text>
       </Box>
     );
   }
 
   if (phase === "error") {
-    return <Text color="red">{error}</Text>;
+    return <ErrorView error={error} onBack={onDone} />;
   }
 
   if (phase === "select-plugin") {
@@ -158,17 +151,22 @@ function AddApp() {
     }));
 
     return (
-      <PluginList
-        plugins={items}
-        onSelect={handlePluginSelect}
-        onCancel={() => process.exit(0)}
-      />
+      <Box flexDirection="column" paddingLeft={2}>
+        <Box marginBottom={1}>
+          <Text bold color="yellow">  选择插件</Text>
+          <Text dimColor>  来自 {url}</Text>
+        </Box>
+        <PluginList
+          plugins={items}
+          onSelect={handlePluginSelect}
+          onCancel={onDone}
+        />
+      </Box>
     );
   }
 
   if (phase === "edit-plugin" && selectedPlugin) {
     const overrides = getImportedOverrides(selectedPlugin.name as string);
-
     return (
       <PluginEditor
         original={{
@@ -187,30 +185,47 @@ function AddApp() {
   }
 
   if (phase === "saved") {
-    return <SavedPhase onContinue={() => setPhase("select-plugin")} />;
+    return (
+      <SavedPhase
+        pluginName={(selectedPlugin as Record<string, unknown>).name as string}
+        onContinue={() => setPhase("select-plugin")}
+        onBack={onDone}
+      />
+    );
   }
 
   return null;
 }
 
-function SavedPhase({ onContinue }: { onContinue: () => void }) {
-  useInput((_input, key) => {
-    if (key.return) {
-      onContinue();
-    }
-    if (key.escape) {
-      process.exit(0);
-    }
+function ErrorView({ error, onBack }: { error: string; onBack: () => void }) {
+  useInput((_ch, key) => {
+    if (key.return || key.escape) onBack();
   });
-
   return (
-    <Box flexDirection="column">
-      <Text color="green">已保存到配置！</Text>
-      <Text dimColor>按 Enter 继续添加，Esc 退出</Text>
+    <Box flexDirection="column" paddingLeft={2}>
+      <Text color="red">  {error}</Text>
+      <Text dimColor>  按 Enter 返回主菜单</Text>
     </Box>
   );
 }
 
-export function addCommand() {
-  render(<AddApp />);
+function SavedPhase({
+  pluginName,
+  onContinue,
+  onBack,
+}: {
+  pluginName: string;
+  onContinue: () => void;
+  onBack: () => void;
+}) {
+  useInput((_input, key) => {
+    if (key.return) onContinue();
+    if (key.escape) onBack();
+  });
+  return (
+    <Box flexDirection="column" paddingLeft={2}>
+      <Text color="green" bold>  ✓ 已保存 {pluginName}</Text>
+      <Text dimColor>  Enter 继续添加  |  Esc 返回主菜单</Text>
+    </Box>
+  );
 }

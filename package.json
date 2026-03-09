@@ -2,9 +2,6 @@
   "private": true,
   "scripts": {
     "ccmarket": "npx --prefix tools tsx tools/src/index.tsx",
-    "ccmarket:init": "npx --prefix tools tsx tools/src/index.tsx init",
-    "ccmarket:add": "npx --prefix tools tsx tools/src/index.tsx add",
-    "ccmarket:generate": "npx --prefix tools tsx tools/src/index.tsx generate",
     "test": "cd tools && npm test"
   }
 }
