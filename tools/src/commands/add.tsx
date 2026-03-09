@@ -115,6 +115,22 @@ export function AddFlow({ onDone }: { onDone: () => void }) {
     }
   };
 
+  /** 管理页面中切换插件的必装状态 */
+  const handleToggleRecommended = (pluginName: string, category: string) => {
+    if (!config) return;
+    const cat = config.categories.find((c) => c.name === category);
+    if (!cat) return;
+    if (!cat.recommendPlugins) cat.recommendPlugins = [];
+    const inList = cat.recommendPlugins.includes(pluginName);
+    if (inList) {
+      cat.recommendPlugins = cat.recommendPlugins.filter((n) => n !== pluginName);
+    } else {
+      cat.recommendPlugins.push(pluginName);
+    }
+    writeConfig(configPath, config);
+    setConfig({ ...config });
+  };
+
   /** 管理页面中选中已导入插件，进入编辑/删除操作 */
   const handleManagePluginSelect = (pluginName: string, sourceUrl: string) => {
     setUrl(sourceUrl);
@@ -153,7 +169,7 @@ export function AddFlow({ onDone }: { onDone: () => void }) {
     setPhase("deleted");
   };
 
-  const handleSave = (description: string, category: string, recommended: boolean) => {
+  const handleSave = (description: string, category: string) => {
     if (!config) return;
 
     let source = config.sources.find((s) => s.url === url);
@@ -176,21 +192,18 @@ export function AddFlow({ onDone }: { onDone: () => void }) {
       config.categories.push({ name: category });
     }
 
-    // 更新对应分组的 recommendPlugins
-    const cat = config.categories.find((c) => c.name === category);
-    if (cat) {
-      if (!cat.recommendPlugins) cat.recommendPlugins = [];
-      const inList = cat.recommendPlugins.includes(pluginName);
-      if (recommended && !inList) {
-        cat.recommendPlugins.push(pluginName);
-      } else if (!recommended && inList) {
-        cat.recommendPlugins = cat.recommendPlugins.filter((n) => n !== pluginName);
-      }
-    }
-    // 如果分类变了，从旧分类的 recommendPlugins 中移除
+    // 如果分类变了，将 recommendPlugins 从旧分类迁移到新分类
     for (const c of config.categories) {
-      if (c.name !== category && c.recommendPlugins) {
+      if (c.name !== category && c.recommendPlugins?.includes(pluginName)) {
         c.recommendPlugins = c.recommendPlugins.filter((n) => n !== pluginName);
+        // 迁移到新分类
+        const newCat = config.categories.find((nc) => nc.name === category);
+        if (newCat) {
+          if (!newCat.recommendPlugins) newCat.recommendPlugins = [];
+          if (!newCat.recommendPlugins.includes(pluginName)) {
+            newCat.recommendPlugins.push(pluginName);
+          }
+        }
       }
     }
 
@@ -218,6 +231,7 @@ export function AddFlow({ onDone }: { onDone: () => void }) {
         onAddFromGit={() => setPhase("choose-source")}
         onAddFromLocal={() => setPhase("select-local")}
         onSelectPlugin={handleManagePluginSelect}
+        onToggleRecommended={handleToggleRecommended}
         onCancel={onDone}
         restoreKey={lastSelectedKey}
       />
@@ -338,9 +352,6 @@ export function AddFlow({ onDone }: { onDone: () => void }) {
 
   if (phase === "edit-plugin" && selectedPlugin) {
     const overrides = getImportedOverrides(selectedPlugin.name as string);
-    const pluginCategory = overrides?.category || selectedPlugin.category as string || "";
-    const cat = config?.categories.find((c) => c.name === pluginCategory);
-    const isRecommended = cat?.recommendPlugins?.includes(selectedPlugin.name as string) || false;
     return (
       <PluginEditor
         original={{
@@ -352,7 +363,6 @@ export function AddFlow({ onDone }: { onDone: () => void }) {
         }}
         current={overrides ? { description: overrides.description, category: overrides.category } : null}
         categories={config?.categories.map((c) => c.name) || []}
-        recommended={isRecommended}
         onSave={handleSave}
         onCancel={() => setPhase("manage")}
       />
@@ -378,6 +388,7 @@ function ManageView({
   onAddFromGit,
   onAddFromLocal,
   onSelectPlugin,
+  onToggleRecommended,
   onCancel,
   restoreKey,
 }: {
@@ -385,6 +396,7 @@ function ManageView({
   onAddFromGit: () => void;
   onAddFromLocal: () => void;
   onSelectPlugin: (pluginName: string, sourceUrl: string) => void;
+  onToggleRecommended: (pluginName: string, category: string) => void;
   onCancel: () => void;
   restoreKey: string | null;
 }) {
@@ -482,13 +494,21 @@ function ManageView({
     setCursor((c) => Math.min(c, items.length - 1));
   }, [activeTab, onlyRecommended, items.length]);
 
-  useInput((_ch, key) => {
+  useInput((ch, key) => {
     if (key.escape) {
       onCancel();
       return;
     }
     if (key.tab) {
       setOnlyRecommended((v) => !v);
+      return;
+    }
+    // 空格键：切换当前选中插件的必装状态
+    if (ch === " " && items.length > 0) {
+      const item = items[cursor];
+      if (item.type === "plugin") {
+        onToggleRecommended(item.name, item.category);
+      }
       return;
     }
     if (key.upArrow) {
@@ -562,7 +582,7 @@ function ManageView({
         })}
       </Box>
       <Box>
-        <Text dimColor>  ↑/↓ 选择  ←/→ 切换分组  Tab 筛选必装  Enter 确认  Esc 返回</Text>
+        <Text dimColor>  ↑/↓ 选择  ←/→ 切换分组  空格 切换必装  Tab 筛选必装  Enter 确认  Esc 返回</Text>
       </Box>
 
       {/* 分隔线 */}

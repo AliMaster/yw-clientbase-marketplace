@@ -35,11 +35,15 @@
   "categories": [
     {
       "name": "flutter",
-      "description": ""
+      "description": "",
+      "recommendPlugins": []
     },
     {
       "name": "workflow",
-      "description": ""
+      "description": "",
+      "recommendPlugins": [
+        "superpowers"
+      ]
     },
     {
       "name": "python"

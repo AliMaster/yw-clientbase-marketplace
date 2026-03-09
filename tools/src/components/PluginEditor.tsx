@@ -14,12 +14,11 @@ interface Props {
   original: PluginData;
   current: { description: string; category: string } | null;
   categories: string[];
-  recommended: boolean;
-  onSave: (description: string, category: string, recommended: boolean) => void;
+  onSave: (description: string, category: string) => void;
   onCancel: () => void;
 }
 
-type Field = "description" | "category" | "recommended";
+type Field = "description" | "category";
 
 export type { PluginData };
 
@@ -27,11 +26,10 @@ export function PluginEditor({
   original,
   current,
   categories,
-  recommended: initialRecommended,
   onSave,
   onCancel,
 }: Props) {
-  const fields: Field[] = ["description", "category", "recommended"];
+  const fields: Field[] = ["description", "category"];
   const [field, setField] = useState<Field>("description");
   const [description, setDescription] = useState(
     current?.description ?? original.description ?? ""
@@ -39,7 +37,6 @@ export function PluginEditor({
   const [category, setCategory] = useState(
     current?.category ?? original.category ?? ""
   );
-  const [recommended, setRecommended] = useState(initialRecommended);
 
   useInput((_input, key) => {
     if (key.escape) {
@@ -58,20 +55,11 @@ export function PluginEditor({
   const handleSubmit = () => {
     if (field === "description") {
       setField("category");
-    } else if (field === "category") {
-      setField("recommended");
     } else {
-      // recommended 字段：Enter 直接保存
-      onSave(description, category, recommended);
+      // category 字段：Enter 直接保存
+      onSave(description, category);
     }
   };
-
-  // recommended 字段：空格键切换值
-  useInput((ch) => {
-    if (field === "recommended" && ch === " ") {
-      setRecommended((v) => !v);
-    }
-  });
 
   return (
     <Box flexDirection="column">
@@ -138,31 +126,12 @@ export function PluginEditor({
               <Text>{category || "-"}</Text>
             </Box>
           )}
-
-          {field === "recommended" ? (
-            <Box>
-              <Text bold color="yellow">推荐必装</Text>
-              <Text>{": "}</Text>
-              <Text color={recommended ? "green" : "gray"} bold>
-                {recommended ? "✓ 是" : "✗ 否"}
-              </Text>
-              <Text dimColor>  (空格切换, Enter 保存)</Text>
-            </Box>
-          ) : (
-            <Box>
-              <Text>推荐必装</Text>
-              <Text>{": "}</Text>
-              <Text color={recommended ? "green" : "gray"}>
-                {recommended ? "✓ 是" : "✗ 否"}
-              </Text>
-            </Box>
-          )}
         </Box>
       </Box>
 
       <Box marginTop={1}>
         <Text dimColor>
-          ↑/↓ 切换字段  Enter 确认/下一步  空格 切换必装  Esc 取消
+          ↑/↓ 切换字段  Enter 确认/下一步  Esc 取消
         </Text>
       </Box>
     </Box>
