@@ -2,26 +2,25 @@ import simpleGit from "simple-git";
 import fs from "node:fs";
 import path from "node:path";
 
-const BUILD_DIR = path.resolve(process.cwd(), "build", "repos");
+function getBuildDir(): string {
+  return path.resolve(process.cwd(), "build", "repos");
+}
 
 export function getRepoDir(repoUrl: string): string {
-  const repoName = repoUrl
-    .replace(/\.git$/, "")
-    .split("/")
-    .pop()!;
-  return path.join(BUILD_DIR, repoName);
+  const parts = repoUrl.replace(/\.git$/, "").split("/");
+  const repoName = parts.slice(-2).join("_");
+  return path.join(getBuildDir(), repoName);
 }
 
 export async function cloneOrPull(repoUrl: string): Promise<string> {
   const repoDir = getRepoDir(repoUrl);
 
-  if (fs.existsSync(path.join(repoDir, ".git"))) {
-    const git = simpleGit(repoDir);
-    await git.pull();
-    return repoDir;
+  // Always do a fresh shallow clone for simplicity
+  if (fs.existsSync(repoDir)) {
+    fs.rmSync(repoDir, { recursive: true, force: true });
   }
 
-  fs.mkdirSync(BUILD_DIR, { recursive: true });
+  fs.mkdirSync(getBuildDir(), { recursive: true });
   const git = simpleGit();
   await git.clone(repoUrl, repoDir, ["--depth", "1"]);
   return repoDir;
@@ -37,5 +36,9 @@ export function readRepoMarketplace(
   );
   if (!fs.existsSync(marketplacePath)) return null;
   const raw = fs.readFileSync(marketplacePath, "utf-8");
-  return JSON.parse(raw);
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
 }

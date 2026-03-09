@@ -11,16 +11,15 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "chalk": "^5.3.0",
     "commander": "^13.1.0",
     "ink": "^5.1.0",
-    "ink-select-input": "^6.0.0",
     "ink-spinner": "^5.0.0",
     "ink-text-input": "^6.0.0",
     "react": "^18.3.1",
     "simple-git": "^3.27.0"
   },
   "devDependencies": {
+    "@types/node": "^20.0.0",
     "@types/react": "^18.3.12",
     "tsx": "^4.19.0",
     "typescript": "^5.6.0",

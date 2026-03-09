@@ -29,7 +29,11 @@ export interface SourcesConfig {
 export function readConfig(configPath: string): SourcesConfig | null {
   if (!fs.existsSync(configPath)) return null;
   const raw = fs.readFileSync(configPath, "utf-8");
-  return JSON.parse(raw) as SourcesConfig;
+  const data = JSON.parse(raw);
+  if (!data.marketplace || !Array.isArray(data.sources)) {
+    throw new Error("Invalid sources.json format");
+  }
+  return data as SourcesConfig;
 }
 
 export function writeConfig(

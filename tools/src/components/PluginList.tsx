@@ -46,7 +46,8 @@ export function PluginList({ plugins, onSelect, onCancel }: Props) {
       setCursor((c) => Math.min(filtered.length - 1, c + 1));
     }
     if (key.return && filtered.length > 0) {
-      onSelect(filtered[cursor]);
+      const safeCursor = Math.min(cursor, filtered.length - 1);
+      onSelect(filtered[safeCursor]);
     }
   });
 

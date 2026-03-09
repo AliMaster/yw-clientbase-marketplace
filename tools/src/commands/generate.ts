@@ -11,6 +11,7 @@ export async function generateCommand() {
   if (!config) {
     console.error("未找到 sources.json，请先运行 marketplace init");
     process.exit(1);
+    return;
   }
 
   const allPlugins: Record<string, unknown>[] = [];
