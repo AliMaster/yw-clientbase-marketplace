@@ -28,6 +28,25 @@
       "description": "BETA: VERY LIGHTLY TESTED - Direct Chrome DevTools Protocol access via 'browsing' skill. Skill mode (17 CLI commands) + MCP mode (single use_browser tool). Zero dependencies, auto-starts Chrome.",
       "version": "1.8.0",
       "strict": true
+    },
+    {
+      "name": "dart-analyzer",
+      "version": "1.0.0",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/boostvolt/claude-code-lsps.git",
+        "path": "dart-analyzer"
+      },
+      "description": "Dart/Flutter language server",
+      "category": "development",
+      "tags": [
+        "dart",
+        "flutter",
+        "lsp"
+      ],
+      "author": {
+        "name": "Jan Kott"
+      }
     }
   ]
 }
