@@ -31,7 +31,7 @@ export function readConfig(configPath: string): SourcesConfig | null {
   const raw = fs.readFileSync(configPath, "utf-8");
   const data = JSON.parse(raw);
   if (!data.marketplace || !Array.isArray(data.sources)) {
-    throw new Error("Invalid sources.json format");
+    throw new Error("Invalid marketconfig.json format");
   }
   return data as SourcesConfig;
 }

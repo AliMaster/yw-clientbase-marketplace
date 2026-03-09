@@ -19,7 +19,7 @@ export function getProjectRoot(): string {
 }
 
 export function getConfigPath(): string {
-  return path.join(getProjectRoot(), "sources.json");
+  return path.join(getProjectRoot(), "marketconfig.json");
 }
 
 export function getBuildDir(): string {

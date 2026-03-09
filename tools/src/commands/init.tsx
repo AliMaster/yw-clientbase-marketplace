@@ -54,7 +54,7 @@ function InitApp() {
   if (step === "done") {
     return (
       <Box flexDirection="column">
-        <Text color="green">sources.json 已创建！</Text>
+        <Text color="green">marketconfig.json 已创建！</Text>
         <Text>  name: {name}</Text>
         <Text>  owner: {ownerName} {ownerEmail ? `<${ownerEmail}>` : ""}</Text>
         <Text>  description: {description}</Text>
@@ -83,7 +83,7 @@ function InitApp() {
 export function initCommand() {
   const configPath = getConfigPath();
   if (fs.existsSync(configPath)) {
-    console.error("sources.json 已存在。如需重新初始化，请先手动删除该文件。");
+    console.error("marketconfig.json 已存在。如需重新初始化，请先手动删除该文件。");
     process.exit(1);
   }
   render(<InitApp />);

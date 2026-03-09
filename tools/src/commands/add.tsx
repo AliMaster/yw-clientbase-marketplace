@@ -34,7 +34,7 @@ function AddApp() {
   useEffect(() => {
     const c = readConfig(configPath);
     if (!c) {
-      setError("未找到 sources.json，请先运行 marketplace init");
+      setError("未找到 marketconfig.json，请先运行 ccmarket init");
       setPhase("error");
       return;
     }
