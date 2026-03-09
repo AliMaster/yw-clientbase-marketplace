@@ -13,6 +13,7 @@ type View = "menu" | "init" | "edit-config" | "add" | "generate";
 
 export function App() {
   const [view, setView] = useState<View>("menu");
+  const [lastMenuKey, setLastMenuKey] = useState<string | null>(null);
   const config = readConfig(getConfigPath());
   const hasConfig = config !== null;
 
@@ -68,8 +69,13 @@ export function App() {
     if (key === "exit") {
       process.exit(0);
     }
+    setLastMenuKey(key);
     setView(key as View);
   };
+
+  const menuCursor = lastMenuKey
+    ? menuItems.findIndex((it) => it.key === lastMenuKey)
+    : 0;
 
   return (
     <Box flexDirection="column">
@@ -85,7 +91,7 @@ export function App() {
       )}
 
       {view === "menu" && (
-        <Menu items={menuItems} onSelect={handleMenuSelect} />
+        <Menu items={menuItems} onSelect={handleMenuSelect} initialCursor={menuCursor >= 0 ? menuCursor : 0} />
       )}
 
       {view === "init" && (

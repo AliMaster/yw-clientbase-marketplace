@@ -12,10 +12,11 @@ export interface MenuItem {
 interface Props {
   items: MenuItem[];
   onSelect: (key: string) => void;
+  initialCursor?: number;
 }
 
-export function Menu({ items, onSelect }: Props) {
-  const [cursor, setCursor] = useState(0);
+export function Menu({ items, onSelect, initialCursor = 0 }: Props) {
+  const [cursor, setCursor] = useState(initialCursor);
 
   const maxLabelLen = Math.max(...items.map((item) => item.label.length));
 

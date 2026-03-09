@@ -43,6 +43,8 @@ export function AddFlow({ onDone }: { onDone: () => void }) {
   const [repoPlugins, setRepoPlugins] = useState<Record<string, unknown>[]>([]);
   const [selectedPlugin, setSelectedPlugin] = useState<Record<string, unknown> | null>(null);
   const [config, setConfig] = useState<SourcesConfig | null>(null);
+  // 记住上次在管理页面选中的插件，用于返回时恢复光标
+  const [lastSelectedKey, setLastSelectedKey] = useState<string | null>(null);
 
   const configPath = getConfigPath();
 
@@ -116,6 +118,7 @@ export function AddFlow({ onDone }: { onDone: () => void }) {
   /** 管理页面中选中已导入插件，进入编辑/删除操作 */
   const handleManagePluginSelect = (pluginName: string, sourceUrl: string) => {
     setUrl(sourceUrl);
+    setLastSelectedKey(`${sourceUrl}::${pluginName}`);
     // 从 config 中找到该插件的原始数据
     const source = config?.sources.find((s) => s.url === sourceUrl);
     const entry = source?.plugins.find((p) => p.name === pluginName);
@@ -192,6 +195,7 @@ export function AddFlow({ onDone }: { onDone: () => void }) {
         onAddFromLocal={() => setPhase("select-local")}
         onSelectPlugin={handleManagePluginSelect}
         onCancel={onDone}
+        restoreKey={lastSelectedKey}
       />
     );
   }
@@ -347,12 +351,14 @@ function ManageView({
   onAddFromLocal,
   onSelectPlugin,
   onCancel,
+  restoreKey,
 }: {
   config: SourcesConfig | null;
   onAddFromGit: () => void;
   onAddFromLocal: () => void;
   onSelectPlugin: (pluginName: string, sourceUrl: string) => void;
   onCancel: () => void;
+  restoreKey: string | null;
 }) {
   // 汇总所有已导入插件
   const allPlugins = useMemo(() => {
@@ -378,7 +384,20 @@ function ManageView({
   }, [config]);
 
   const [activeTab, setActiveTab] = useState(0);
-  const [cursor, setCursor] = useState(0);
+  const [cursor, setCursor] = useState(() => {
+    // 初始光标：尝试恢复到上次选中的插件
+    if (!restoreKey) return 0;
+    // 初始 tab=0 即"全部"，filteredPlugins = allPlugins
+    const initItems = [
+      { key: "__git__" }, { key: "__local__" },
+      ...allPlugins.map((p) => ({ key: `${p.sourceUrl}::${p.name}` })),
+    ];
+    const idx = initItems.findIndex((it) => it.key === restoreKey);
+    if (idx >= 0) return idx;
+    // 被删除：回到上一项或最后一个插件
+    if (initItems.length > 2) return initItems.length - 1;
+    return 0;
+  });
   const { stdout } = useStdout();
   const termWidth = stdout?.columns || 120;
 
@@ -415,10 +434,10 @@ function ManageView({
     return Math.min(maxName, 30);
   }, [allPlugins]);
 
-  // 切换 tab 时重置光标
+  // 切换 tab 时，保持光标在有效范围内
   useEffect(() => {
-    setCursor(0);
-  }, [activeTab]);
+    setCursor((c) => Math.min(c, items.length - 1));
+  }, [activeTab, items.length]);
 
   useInput((_ch, key) => {
     if (key.escape) {
