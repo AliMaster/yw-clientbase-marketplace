@@ -45,7 +45,7 @@ export function Menu({ items, onSelect }: Props) {
             <Text color={active ? "cyan" : "gray"}>
               {active ? "  > " : "    "}
             </Text>
-            <Text color={active ? (item.color as any) : undefined} bold={active}>
+            <Text color={active ? "green" : undefined} bold={active}>
               {labelPad}
             </Text>
             {item.description && (
