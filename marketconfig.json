@@ -1,0 +1,48 @@
+{
+  "marketplace": {
+    "name": "yuewen-clientbase-marketplace",
+    "owner": {
+      "name": "caojianwei",
+      "email": "caojianwei@yuewen.com"
+    },
+    "metadata": {
+      "description": "阅文通用终端 Claude Code 插件市场，从社区精选和团队自研的优秀插件",
+      "version": ""
+    }
+  },
+  "sources": [
+    {
+      "url": "https://github.com/boostvolt/claude-code-lsps",
+      "plugins": [
+        {
+          "name": "dart-analyzer",
+          "description": "Dart 分析器",
+          "category": "flutter"
+        }
+      ]
+    },
+    {
+      "url": "https://github.com/obra/superpowers-marketplace",
+      "plugins": [
+        {
+          "name": "superpowers",
+          "description": "Core skills library: TDD, debugging, collaboration patterns, and proven techniques",
+          "category": "workflow"
+        }
+      ]
+    }
+  ],
+  "categories": [
+    {
+      "name": "flutter",
+      "description": ""
+    },
+    {
+      "name": "workflow",
+      "description": ""
+    },
+    {
+      "name": "python"
+    }
+  ]
+}

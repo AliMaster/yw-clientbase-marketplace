@@ -10,35 +10,15 @@
   },
   "plugins": [
     {
-      "name": "superpowers",
-      "source": {
-        "source": "url",
-        "url": "https://github.com/obra/superpowers.git"
-      },
-      "description": "Core skills library: TDD, debugging, collaboration patterns, and proven techniques",
-      "version": "4.3.1",
-      "strict": true
-    },
-    {
-      "name": "superpowers-chrome",
-      "source": {
-        "source": "url",
-        "url": "https://github.com/obra/superpowers-chrome.git"
-      },
-      "description": "BETA: VERY LIGHTLY TESTED - Direct Chrome DevTools Protocol access via 'browsing' skill. Skill mode (17 CLI commands) + MCP mode (single use_browser tool). Zero dependencies, auto-starts Chrome.",
-      "version": "1.8.0",
-      "strict": true
-    },
-    {
       "name": "dart-analyzer",
       "version": "1.0.0",
       "source": {
         "source": "git-subdir",
-        "url": "https://github.com/boostvolt/claude-code-lsps.git",
+        "url": "https://github.com/boostvolt/claude-code-lsps",
         "path": "dart-analyzer"
       },
-      "description": "Dart/Flutter language server",
-      "category": "development",
+      "description": "Dart 分析器",
+      "category": "flutter",
       "tags": [
         "dart",
         "flutter",
@@ -47,6 +27,17 @@
       "author": {
         "name": "Jan Kott"
       }
+    },
+    {
+      "name": "superpowers",
+      "source": {
+        "source": "url",
+        "url": "https://github.com/obra/superpowers.git"
+      },
+      "description": "Core skills library: TDD, debugging, collaboration patterns, and proven techniques",
+      "version": "4.3.1",
+      "strict": true,
+      "category": "workflow"
     }
   ]
 }
