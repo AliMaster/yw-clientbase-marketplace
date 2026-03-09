@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { Box, Text, useInput } from "ink";
+import { Box, Text, useInput, useStdout } from "ink";
 import TextInput from "ink-text-input";
 
 interface PluginItem {
@@ -34,13 +34,25 @@ export function PluginList({ plugins, onSelect, onCancel }: Props) {
     );
   }, [plugins, search]);
 
-  const maxNameLen = useMemo(() => {
-    return Math.max(...plugins.map((p) => p.name.length), 10);
-  }, [plugins]);
+  const { stdout } = useStdout();
+  const termWidth = stdout?.columns || 120;
 
+  // 固定列宽: 光标(2) + 状态(6) + 版本(maxVer+2) + 间隔余量(2)
+  // 插件名和描述分配剩余空间
   const maxVerLen = useMemo(() => {
     return Math.max(...plugins.map((p) => (p.version || "?").length), 5);
   }, [plugins]);
+
+  // 前缀固定: "x [X] " = 7字符, 外层可能有 padding, 留余量
+  const prefixLen = 7;
+  const fixedCols = prefixLen + maxVerLen + 4 + 4; // +4 padding between cols, +4 safety margin
+  const remaining = Math.max(termWidth - fixedCols, 40);
+  // 插件名占 35%，描述占 65%
+  const nameColWidth = Math.min(
+    Math.max(...plugins.map((p) => p.name.length), 10),
+    Math.floor(remaining * 0.35)
+  );
+  const descColWidth = remaining - nameColWidth;
 
   useInput((input, key) => {
     if (key.escape) {
@@ -59,8 +71,6 @@ export function PluginList({ plugins, onSelect, onCancel }: Props) {
     }
   });
 
-  // 光标列宽: "❯ " = 2, 状态列宽: "[已导入] " = 5+1=6 or "       " = 6
-  const statusWidth = 6;
 
   return (
     <Box flexDirection="column">
@@ -73,37 +83,32 @@ export function PluginList({ plugins, onSelect, onCancel }: Props) {
         {filtered.map((p, i) => {
           const active = i === cursor;
           const ver = p.version || "?";
+          // 前缀: "❯ [v] " / "  [v] " / "❯     " / "      " — 固定6字符
+          const cursor_s = active ? ">" : " ";
+          const status_s = p.imported ? "[x]" : "   ";
+          const prefix = `${cursor_s} ${status_s} `;
+          const nameTrunc = p.name.length > nameColWidth
+            ? p.name.slice(0, nameColWidth - 1) + "~"
+            : p.name;
+          const namePad = nameTrunc.padEnd(nameColWidth);
+          const verPad = ver.padEnd(maxVerLen + 2);
+          const desc = (p.description || "")
+            + (p.category ? ` [${p.category}]` : "");
+          const descTrunc = desc.length > descColWidth
+            ? desc.slice(0, descColWidth - 1) + "~"
+            : desc;
 
           return (
-            <Box key={p.name} flexDirection="row">
-              {/* 光标 */}
-              <Text color={active ? "cyan" : "gray"}>
-                {active ? "❯ " : "  "}
+            <Box key={p.name}>
+              <Text>
+                <Text color={active ? "cyan" : "gray"}>{cursor_s} </Text>
+                <Text color="green">{status_s}</Text>
+                <Text> </Text>
+                <Text color={active ? "white" : "cyan"} bold>{namePad}</Text>
+                <Text>  </Text>
+                <Text dimColor>{verPad}</Text>
+                <Text color={active ? undefined : "gray"}>{descTrunc || "无描述"}</Text>
               </Text>
-              {/* 状态标签 - 固定宽度 */}
-              <Box width={statusWidth}>
-                {p.imported
-                  ? <Text color="green">已导入</Text>
-                  : <Text>      </Text>
-                }
-              </Box>
-              {/* 插件名 - 固定宽度 */}
-              <Box width={maxNameLen + 2}>
-                <Text color={active ? "white" : "cyan"} bold>
-                  {p.name}
-                </Text>
-              </Box>
-              {/* 版本 - 固定宽度 */}
-              <Box width={maxVerLen + 2}>
-                <Text dimColor>{ver}</Text>
-              </Box>
-              {/* 描述 - 自然换行 */}
-              <Box flexShrink={1}>
-                <Text color={active ? undefined : "gray"}>
-                  {p.description || "无描述"}
-                </Text>
-                {p.category && <Text color="yellow"> [{p.category}]</Text>}
-              </Box>
             </Box>
           );
         })}

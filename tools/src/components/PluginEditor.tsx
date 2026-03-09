@@ -41,6 +41,12 @@ export function PluginEditor({
     if (key.escape) {
       onCancel();
     }
+    if (key.upArrow) {
+      setField("description");
+    }
+    if (key.downArrow) {
+      setField("category");
+    }
   });
 
   const handleSubmit = () => {
@@ -76,7 +82,8 @@ export function PluginEditor({
 
           {field === "description" ? (
             <Box>
-              <Text bold color="yellow">Description: </Text>
+              <Text bold color="yellow">Description</Text>
+              <Text>{": "}</Text>
               <TextInput
                 value={description}
                 onChange={setDescription}
@@ -84,13 +91,18 @@ export function PluginEditor({
               />
             </Box>
           ) : (
-            <Text>Description: {description}</Text>
+            <Box>
+              <Text>Description</Text>
+              <Text>{": "}</Text>
+              <Text>{description}</Text>
+            </Box>
           )}
 
           {field === "category" ? (
             <Box flexDirection="column">
               <Box>
-                <Text bold color="yellow">Category: </Text>
+                <Text bold color="yellow">Category</Text>
+                <Text>{": "}</Text>
                 <TextInput
                   value={category}
                   onChange={setCategory}
@@ -104,16 +116,18 @@ export function PluginEditor({
               )}
             </Box>
           ) : (
-            <Text>Category: {category || "-"}</Text>
+            <Box>
+              <Text>Category</Text>
+              <Text>{": "}</Text>
+              <Text>{category || "-"}</Text>
+            </Box>
           )}
         </Box>
       </Box>
 
       <Box marginTop={1}>
         <Text dimColor>
-          {field === "description"
-            ? "输入 description 后按 Enter 继续"
-            : "输入 category 后按 Enter 保存  |  Esc 取消"}
+          ↑/↓ 切换字段  Enter 确认  Esc 取消
         </Text>
       </Box>
     </Box>
