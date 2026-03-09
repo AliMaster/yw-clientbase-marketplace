@@ -4,7 +4,7 @@ import Spinner from "ink-spinner";
 import { readConfig } from "../utils/config.js";
 import { cloneOrPull, readRepoMarketplace } from "../utils/git.js";
 import { transformPlugin } from "../utils/transform.js";
-import { getConfigPath, getOutputPath } from "../utils/paths.js";
+import { getConfigPath, getOutputPath, getProjectRoot } from "../utils/paths.js";
 import path from "node:path";
 import fs from "node:fs";
 
@@ -45,37 +45,82 @@ export function GenerateFlow({ onDone }: { onDone: () => void }) {
 
         for (const source of config.sources) {
           sourceCount++;
-          addLog(`处理源: ${source.url}`, "cyan");
+          const isLocal = source.url.startsWith("./");
 
-          let repoDir: string;
-          try {
-            repoDir = await cloneOrPull(source.url);
-          } catch (e) {
-            addLog(`  克隆失败: ${(e as Error).message}`, "red");
-            continue;
-          }
+          if (isLocal) {
+            // 本地插件：直接读取 plugin.json
+            addLog(`处理本地源: ${source.url}`, "cyan");
+            const pluginDir = path.join(getProjectRoot(), source.url);
+            const pluginJsonPath = path.join(pluginDir, ".claude-plugin", "plugin.json");
 
-          const marketplace = readRepoMarketplace(repoDir);
-          if (!marketplace || !Array.isArray(marketplace.plugins)) {
-            addLog("  未找到有效的 marketplace.json", "red");
-            continue;
-          }
-
-          const repoPlugins = marketplace.plugins as Record<string, unknown>[];
-
-          for (const pluginConfig of source.plugins) {
-            const original = repoPlugins.find((p) => p.name === pluginConfig.name);
-            if (!original) {
-              addLog(`  跳过 ${pluginConfig.name} (未在源仓库中找到)`, "yellow");
+            if (!fs.existsSync(pluginJsonPath)) {
+              addLog(`  未找到 ${pluginJsonPath}`, "red");
               continue;
             }
 
-            const transformed = transformPlugin(original, source.url, {
-              description: pluginConfig.description,
-              category: pluginConfig.category,
-            });
-            allPlugins.push(transformed);
-            addLog(`  ✓ ${pluginConfig.name}`, "green");
+            let pluginData: Record<string, unknown>;
+            try {
+              const raw = JSON.parse(fs.readFileSync(pluginJsonPath, "utf-8"));
+              pluginData = {
+                name: raw.name,
+                description: raw.description,
+                version: raw.version,
+                author: raw.author,
+                source: raw.source,
+                category: raw.category,
+              };
+            } catch {
+              addLog(`  plugin.json 解析失败`, "red");
+              continue;
+            }
+
+            for (const pluginConfig of source.plugins) {
+              if (pluginConfig.name !== pluginData.name) {
+                addLog(`  跳过 ${pluginConfig.name} (名称不匹配)`, "yellow");
+                continue;
+              }
+
+              const transformed = transformPlugin(pluginData, source.url, {
+                description: pluginConfig.description,
+                category: pluginConfig.category,
+              });
+              allPlugins.push(transformed);
+              addLog(`  ✓ ${pluginConfig.name}`, "green");
+            }
+          } else {
+            // Git 仓库：克隆/拉取后读取 marketplace.json
+            addLog(`处理源: ${source.url}`, "cyan");
+
+            let repoDir: string;
+            try {
+              repoDir = await cloneOrPull(source.url);
+            } catch (e) {
+              addLog(`  克隆失败: ${(e as Error).message}`, "red");
+              continue;
+            }
+
+            const marketplace = readRepoMarketplace(repoDir);
+            if (!marketplace || !Array.isArray(marketplace.plugins)) {
+              addLog("  未找到有效的 marketplace.json", "red");
+              continue;
+            }
+
+            const repoPlugins = marketplace.plugins as Record<string, unknown>[];
+
+            for (const pluginConfig of source.plugins) {
+              const original = repoPlugins.find((p) => p.name === pluginConfig.name);
+              if (!original) {
+                addLog(`  跳过 ${pluginConfig.name} (未在源仓库中找到)`, "yellow");
+                continue;
+              }
+
+              const transformed = transformPlugin(original, source.url, {
+                description: pluginConfig.description,
+                category: pluginConfig.category,
+              });
+              allPlugins.push(transformed);
+              addLog(`  ✓ ${pluginConfig.name}`, "green");
+            }
           }
         }
 

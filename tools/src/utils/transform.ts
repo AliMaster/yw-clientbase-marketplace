@@ -4,24 +4,25 @@ export interface PluginOverrides {
 }
 
 export function transformSource(
-  source: string | Record<string, unknown>,
+  source: string | Record<string, unknown> | undefined,
   repoUrl: string
-): Record<string, unknown> {
-  if (typeof source === "object") return source;
-  if (source.startsWith("local:")) {
-    return {
-      source: "local",
-      path: source.slice("local:".length),
-    };
+): string | Record<string, unknown> {
+  if (typeof source === "object" && source !== null) return source;
+  // 本地路径：source 直接存为 "./xxx" 字符串
+  if (repoUrl.startsWith("./")) {
+    return repoUrl;
   }
-  if (source.startsWith("./")) {
-    return {
-      source: "git-subdir",
-      url: repoUrl,
-      path: source.slice(2),
-    };
+  if (typeof source === "string") {
+    if (source.startsWith("./")) {
+      return {
+        source: "git-subdir",
+        url: repoUrl,
+        path: source.slice(2),
+      };
+    }
+    return { source: "url", url: source };
   }
-  return { source: "url", url: source };
+  return { source: "url", url: repoUrl };
 }
 
 export function transformPlugin(
@@ -32,7 +33,7 @@ export function transformPlugin(
   return {
     ...plugin,
     source: transformSource(
-      plugin.source as string | Record<string, unknown>,
+      plugin.source as string | Record<string, unknown> | undefined,
       repoUrl
     ),
     description: overrides.description,

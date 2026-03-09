@@ -163,7 +163,7 @@ export function AddFlow({ onDone }: { onDone: () => void }) {
   };
 
   const handleLocalPluginSelect = (plugin: { name: string; version?: string; description?: string; path: string }) => {
-    setUrl(`local:${plugin.path}`);
+    setUrl(plugin.path);
     setSelectedPlugin({
       name: plugin.name,
       version: plugin.version,
@@ -187,7 +187,7 @@ export function AddFlow({ onDone }: { onDone: () => void }) {
 
   // 选择来源：已有仓库 or 新仓库
   if (phase === "choose-source") {
-    const existingSources = (config?.sources || []).filter((s) => !s.url.startsWith("local:"));
+    const existingSources = (config?.sources || []).filter((s) => !s.url.startsWith("./"));
     return (
       <SourceChooser
         sources={existingSources.map((s) => ({
