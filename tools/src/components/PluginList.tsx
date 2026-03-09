@@ -34,14 +34,13 @@ export function PluginList({ plugins, onSelect, onCancel }: Props) {
     );
   }, [plugins, search]);
 
-  // 计算最长名字宽度用于对齐
   const maxNameLen = useMemo(() => {
     return Math.max(...plugins.map((p) => p.name.length), 10);
   }, [plugins]);
 
-  // [已导入] 标签宽度
-  const badgeWidth = 7; // "[已导入] " 占 7 个字符（含空格）
-  const nameColWidth = maxNameLen + badgeWidth + 2; // +2 留余量
+  const maxVerLen = useMemo(() => {
+    return Math.max(...plugins.map((p) => (p.version || "?").length), 5);
+  }, [plugins]);
 
   useInput((input, key) => {
     if (key.escape) {
@@ -60,6 +59,9 @@ export function PluginList({ plugins, onSelect, onCancel }: Props) {
     }
   });
 
+  // 光标列宽: "❯ " = 2, 状态列宽: "[已导入] " = 5+1=6 or "       " = 6
+  const statusWidth = 6;
+
   return (
     <Box flexDirection="column">
       <Box>
@@ -70,24 +72,38 @@ export function PluginList({ plugins, onSelect, onCancel }: Props) {
       <Box flexDirection="column" marginTop={1}>
         {filtered.map((p, i) => {
           const active = i === cursor;
-          const badge = p.imported ? "[已导入]" : "";
-          const nameStr = `${badge}${badge ? " " : ""}${p.name}`;
-          const padded = nameStr.padEnd(nameColWidth);
+          const ver = p.version || "?";
 
           return (
-            <Box key={p.name} wrap="truncate">
+            <Box key={p.name} flexDirection="row">
+              {/* 光标 */}
               <Text color={active ? "cyan" : "gray"}>
                 {active ? "❯ " : "  "}
               </Text>
-              <Text wrap="truncate">
-                {p.imported && <Text color="green" bold={active}>[已导入] </Text>}
+              {/* 状态标签 - 固定宽度 */}
+              <Box width={statusWidth}>
+                {p.imported
+                  ? <Text color="green">已导入</Text>
+                  : <Text>      </Text>
+                }
+              </Box>
+              {/* 插件名 - 固定宽度 */}
+              <Box width={maxNameLen + 2}>
                 <Text color={active ? "white" : "cyan"} bold>
-                  {p.name.padEnd(maxNameLen)}
+                  {p.name}
                 </Text>
-                <Text dimColor> v{(p.version || "?").padEnd(8)}</Text>
-                <Text color={active ? undefined : "gray"}> {p.description || "无描述"}</Text>
+              </Box>
+              {/* 版本 - 固定宽度 */}
+              <Box width={maxVerLen + 2}>
+                <Text dimColor>{ver}</Text>
+              </Box>
+              {/* 描述 - 自然换行 */}
+              <Box flexShrink={1}>
+                <Text color={active ? undefined : "gray"}>
+                  {p.description || "无描述"}
+                </Text>
                 {p.category && <Text color="yellow"> [{p.category}]</Text>}
-              </Text>
+              </Box>
             </Box>
           );
         })}
