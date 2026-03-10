@@ -1,4 +1,3 @@
-#!/usr/bin/env npx tsx
 import React from "react";
 import { render } from "ink";
 import { App } from "./App.js";

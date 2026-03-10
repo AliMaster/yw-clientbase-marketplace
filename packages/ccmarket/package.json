@@ -4,10 +4,11 @@
   "description": "Claude Code 插件市场管理 CLI 工具",
   "type": "module",
   "bin": {
-    "ccmarket": "./src/index.tsx"
+    "ccmarket": "./bin/ccmarket.mjs"
   },
   "files": [
-    "src"
+    "src",
+    "bin"
   ],
   "scripts": {
     "start": "tsx src/index.tsx",
