@@ -36,7 +36,7 @@ function AlreadyExists({ onBack }: { onBack: () => void }) {
   });
   return (
     <Box paddingLeft={2} flexDirection="column">
-      <Text color="yellow">  marketconfig.json 已存在，请使用「编辑市场配置」来编辑。</Text>
+      <Text color="yellow">  marketplace-config.json 已存在，请使用「编辑市场配置」来编辑。</Text>
       <Text dimColor>  按 Enter 或 Esc 返回</Text>
     </Box>
   );
@@ -146,7 +146,7 @@ function InitForm({ onDone }: { onDone: () => void }) {
             </Box>
           ))}
           <Box marginTop={1}>
-            <Text color="green" bold>  ✓ marketconfig.json 已创建！</Text>
+            <Text color="green" bold>  ✓ marketplace-config.json 已创建！</Text>
           </Box>
           <Text dimColor>  按 Enter 或 Esc 返回主菜单</Text>
         </>

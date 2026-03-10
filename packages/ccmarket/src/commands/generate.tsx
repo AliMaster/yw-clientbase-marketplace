@@ -44,7 +44,7 @@ export function GenerateFlow({ onDone }: { onDone: () => void }) {
       try {
         const config = readConfig(getConfigPath());
         if (!config) {
-          addLog("未找到 marketconfig.json", "red");
+          addLog("未找到 marketplace-config.json", "red");
           setPhase("error");
           return;
         }

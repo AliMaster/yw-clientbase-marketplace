@@ -57,7 +57,7 @@ export function AddFlow({ onDone }: { onDone: () => void }) {
   useEffect(() => {
     const c = readConfig(configPath);
     if (!c) {
-      setError("未找到 marketconfig.json，请先创建配置");
+      setError("未找到 marketplace-config.json，请先创建配置");
       setPhase("error");
       return;
     }

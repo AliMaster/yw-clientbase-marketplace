@@ -19,7 +19,7 @@ packages/ccmarket/
     ├── index.tsx              # 入口，渲染 App
     ├── App.tsx                # 主应用，视图路由与状态管理
     ├── commands/              # 命令流程（各功能页面）
-    │   ├── init.tsx           # 初始化 marketconfig.json
+    │   ├── init.tsx           # 初始化 marketplace-config.json
     │   ├── add.tsx            # 添加/管理插件（最复杂）
     │   ├── generate.tsx       # 生成 marketplace.json
     │   └── config-view.tsx    # 编辑市场基本信息
@@ -61,7 +61,7 @@ packages/ccmarket/
       │             │
       ▼             ▼
 ┌──────────────────────────────────────┐
-│       marketconfig.json (读写)       │
+│       marketplace-config.json (读写)       │
 └──────────────────────────────────────┘
       │
       ▼
@@ -169,5 +169,5 @@ App.tsx
 
 - **状态机**：AddFlow 用 Phase 类型驱动多步交互流程
 - **组件组合**：小粒度可复用 UI 组件（Menu、PluginList、PluginEditor）
-- **配置驱动**：所有行为由 marketconfig.json 控制
+- **配置驱动**：所有行为由 marketplace-config.json 控制
 - **光标记忆**：各级页面返回时恢复上次选中位置

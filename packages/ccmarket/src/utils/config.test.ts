@@ -10,7 +10,7 @@ describe("config", () => {
 
   beforeEach(() => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "marketplace-test-"));
-    configPath = path.join(tmpDir, "marketconfig.json");
+    configPath = path.join(tmpDir, "marketplace-config.json");
   });
 
   afterEach(() => {

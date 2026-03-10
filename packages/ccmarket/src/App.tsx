@@ -27,7 +27,7 @@ export function App() {
     menuItems.push({
       key: "init",
       label: "创建配置",
-      description: "初始化 marketconfig.json",
+      description: "初始化 marketplace-config.json",
       icon: "◆",
       color: "green",
     });

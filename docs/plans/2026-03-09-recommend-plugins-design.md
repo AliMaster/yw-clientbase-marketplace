@@ -15,7 +15,7 @@ export interface CategoryEntry {
 }
 ```
 
-marketconfig.json 示例：
+marketplace-config.json 示例：
 ```json
 "categories": [
   { "name": "workflow", "recommendPlugins": ["superpowers"] },
