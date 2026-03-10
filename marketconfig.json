@@ -36,7 +36,9 @@
     {
       "name": "flutter",
       "description": "",
-      "recommendPlugins": []
+      "recommendPlugins": [
+        "dart-analyzer"
+      ]
     },
     {
       "name": "workflow",
