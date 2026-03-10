@@ -18,7 +18,7 @@ export function Header() {
 
       <Box marginBottom={1} flexDirection="column">
         <Text>  Claude Code 插件市场管理工具</Text>
-        <Text dimColor>  轻松管理、组合来自社区和团队的 Claude Code 插件</Text>
+        <Text dimColor>  轻松定制适合属于自己的 Claude Code 插件市场</Text>
       </Box>
     </Box>
   );
