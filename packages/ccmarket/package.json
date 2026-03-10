@@ -1,19 +1,33 @@
 {
   "name": "ccmarket",
   "version": "1.0.0",
-  "description": "Claude Code 插件市场管理 CLI 工具",
+  "description": "私有 Claude Code 插件市场定制、管理工具",
   "type": "module",
   "bin": {
     "ccmarket": "./bin/ccmarket.mjs"
   },
   "files": [
     "src",
-    "bin"
+    "bin",
+    "!src/**/*.test.*"
   ],
   "scripts": {
     "start": "tsx src/index.tsx",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "prepublishOnly": "npm test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AliMaster/yw-clientbase-marketplace.git",
+    "directory": "packages/ccmarket"
+  },
+  "homepage": "https://github.com/AliMaster/yw-clientbase-marketplace/tree/main/packages/ccmarket#readme",
+  "bugs": {
+    "url": "https://github.com/AliMaster/yw-clientbase-marketplace/issues"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   },
   "keywords": [
     "claude-code",
